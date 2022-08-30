@@ -21,6 +21,11 @@ export const marks = [
   },
 ];
 
+export const MORNING_SHIFT_START = [8, 45];
+export const MORNING_SHIFT_END = [11, 45];
+export const AFTERNOON_SHIFT_START = [14, 0];
+export const AFTERNOON_SHIFT_END = [16, 0];
+
 export const names = [
   "Alen Gavranovic",
   "Ivan Pavic",

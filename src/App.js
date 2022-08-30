@@ -36,11 +36,17 @@ import { Stack } from "@mui/system";
 import CloseIcon from "@mui/icons-material/Close";
 
 import {
+  AFTERNOON_SHIFT_END,
+  AFTERNOON_SHIFT_START,
   ITEM_HEIGHT,
   ITEM_PADDING_TOP,
   marks,
+  MORNING_SHIFT_END,
+  MORNING_SHIFT_START,
   names,
 } from "./utility/constants";
+import DateTimePicker from "react-datetime-picker";
+import { getMinuteDifference } from "./utility/utils";
 
 const currentDate = new Date();
 
@@ -72,22 +78,48 @@ const MenuProps = {
 export default class App extends React.PureComponent {
   constructor(props) {
     super(props);
+
+    let today = new Date();
+
     this.state = {
-      data: [
-        {
-          startDate: "2022-08-24T09:45",
-          endDate: "2022-08-24T11:00",
-          title: "Meeting",
-        },
-        {
-          startDate: "2022-08-24T12:00",
-          endDate: "2022-08-24T13:30",
-          title: "Go to a gym",
-        },
-      ],
+      data: [],
+
+      morningShiftStart: new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+        MORNING_SHIFT_START[0],
+        MORNING_SHIFT_START[1],
+        0
+      ),
+      morningShiftEnd: new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+        MORNING_SHIFT_END[0],
+        MORNING_SHIFT_END[1],
+        0
+      ),
+      afternoonShiftStart: new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+        AFTERNOON_SHIFT_START[0],
+        AFTERNOON_SHIFT_START[1],
+        0
+      ),
+      afternoonShiftEnd: new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+        AFTERNOON_SHIFT_END[0],
+        AFTERNOON_SHIFT_END[1],
+        0
+      ),
+
       nrLines: 1,
       lineDuration: 300,
-      personName: [],
+      collaborators: ["Alen Gavranovic", "Ivan Pavic", "Pinco Pallino"],
       alertOpen: false,
       shadePreviousCells: true,
       shadePreviousAppointments: true,
@@ -97,7 +129,7 @@ export default class App extends React.PureComponent {
 
   componentDidMount() {
     this.setState({
-      personName: [],
+      collaborators: [],
     });
   }
   handleNrLinesChange = (event) => {
@@ -122,24 +154,208 @@ export default class App extends React.PureComponent {
     } = event;
     this.setState({
       // On autofill we get a stringified value.
-      personName: typeof value === "string" ? value.split(",") : value,
+      collaborators: typeof value === "string" ? value.split(",") : value,
     });
   };
 
   computeShifts = () => {
-    if (!this.settingsValid()) return;
+    // if (!this.settingsValid()) return;
 
-    console.log(
-      this.state.nrLines,
-      this.state.lineDuration,
-      this.state.personName
+    const morningLineDuration = getMinuteDifference(
+      this.state.morningShiftStart,
+      this.state.morningShiftEnd
     );
+
+    const afternoonLineDuration = getMinuteDifference(
+      this.state.afternoonShiftStart,
+      this.state.afternoonShiftEnd
+    );
+
+    const lineDuration = morningLineDuration + afternoonLineDuration;
+
+    const shiftLength =
+      (lineDuration * this.state.nrLines) / this.state.collaborators.length;
+
+    let shuffledCollaborators = this.state.collaborators.sort(
+      () => Math.random() - 0.5
+    );
+
+    let collaboratorCounter = 0;
+    let dayCounter = 0;
+
+    // Loop lines
+    for (let i = 0; i < this.state.nrLines; i++) {
+      let previousLineDiff = 0;
+      let morningShifts = [];
+      let afternoonShifts = [];
+
+      let startDate = new Date(),
+        endDate = new Date();
+
+      console.log("Before pauses computation, shift length", shiftLength);
+      console.log(
+        this.getD(this.state.afternoonShiftStart),
+        this.getD(this.state.morningShiftEnd),
+        this.getD(this.state.afternoonShiftStart),
+        this.getD(this.state.afternoonShiftEnd)
+      );
+
+      // Loop collaborators
+      for (let j = collaboratorCounter; j < shuffledCollaborators.length; j++) {
+        console.log("---------------------");
+        console.log(dayCounter);
+        if (dayCounter === 0) {
+          startDate = new Date(this.state.morningShiftStart.getTime());
+        } else {
+          startDate = new Date(endDate.getTime());
+        }
+        endDate = new Date(
+          startDate.getTime() + shiftLength * 60000 - previousLineDiff
+        );
+        dayCounter = dayCounter + 1;
+
+        console.log(this.getD(startDate), this.getD(endDate));
+
+        // Is in morning shift
+        if (
+          startDate.getTime() >= this.state.morningShiftStart.getTime() &&
+          startDate.getTime() <= this.state.morningShiftEnd.getTime() &&
+          endDate.getTime() >= this.state.morningShiftStart.getTime() &&
+          endDate.getTime() <= this.state.morningShiftEnd.getTime()
+        ) {
+          morningShifts.push({
+            title: shuffledCollaborators[j],
+            startDate,
+            endDate,
+          });
+
+          console.log(
+            "IS IN MORNING SHIFT",
+            this.getD(startDate),
+            this.getD(endDate)
+          );
+
+          continue;
+        }
+
+        // Is in afternoon shift
+        if (
+          startDate.getTime() >= this.state.afternoonShiftStart.getTime() &&
+          startDate.getTime() <= this.state.afternoonShiftEnd.getTime() &&
+          endDate.getTime() >= this.state.afternoonShiftStart.getTime() &&
+          endDate.getTime() <= this.state.afternoonShiftEnd.getTime()
+        ) {
+          afternoonShifts.push({
+            title: shuffledCollaborators[j],
+            startDate: new Date(startDate),
+            endDate: new Date(endDate),
+          });
+
+          console.log(
+            "IS IN AFTERNOON",
+            this.getD(startDate),
+            this.getD(endDate)
+          );
+
+          continue;
+        }
+
+        // Is partially in the morning, partially in the afternoon
+        if (
+          startDate.getTime() >= this.state.morningShiftStart.getTime() &&
+          startDate.getTime() <= this.state.morningShiftEnd.getTime() &&
+          endDate.getTime() > this.state.morningShiftEnd.getTime()
+        ) {
+          let diff = Math.abs(
+            endDate.getTime() - this.state.morningShiftEnd.getTime()
+          );
+
+          let partialDate1 = new Date(
+            this.state.morningShiftEnd.getTime() - diff
+          );
+          let partialDate2 = new Date(
+            this.state.afternoonShiftStart.getTime() + diff
+          );
+
+          if (
+            new Date(startDate).getTime() !==
+            this.state.morningShiftEnd.getTime()
+          ) {
+            console.log(
+              "ARE THEY EQUAL: ",
+              startDate.getTime(),
+              this.state.morningShiftEnd.getTime()
+            );
+            morningShifts.push({
+              title: shuffledCollaborators[j],
+              startDate: new Date(startDate),
+              endDate: new Date(this.state.morningShiftEnd),
+            });
+          }
+
+          afternoonShifts.push({
+            title: shuffledCollaborators[j],
+            startDate: new Date(this.state.afternoonShiftStart),
+            endDate: new Date(partialDate2),
+          });
+
+          // Update
+          startDate = new Date(this.state.afternoonShiftStart);
+          endDate = new Date(partialDate2);
+
+          console.log(
+            "IS PARTIALLY IN MORNING",
+            this.getD(startDate),
+            this.getD(endDate)
+          );
+
+          continue;
+        }
+
+        // Is partially in the afternoon
+        if (
+          startDate.getTime() >= this.state.afternoonShiftStart.getTime() &&
+          startDate.getTime() <= this.state.afternoonShiftEnd.getTime() &&
+          endDate.getTime() > this.state.afternoonShiftEnd.getTime()
+        ) {
+          // Next line, exclude the collaborators that have already been assigned a shift
+          collaboratorCounter = j;
+
+          let diff = Math.abs(
+            endDate.getTime() - this.state.afternoonShiftEnd.getTime()
+          );
+
+          afternoonShifts.push({
+            title: shuffledCollaborators[j],
+            startDate: new Date(startDate),
+            endDate: startDate.getTime() + diff,
+          });
+
+          dayCounter = 0;
+          previousLineDiff = diff;
+
+          break;
+        }
+
+        previousLineDiff = 0;
+      }
+      this.setState((prevState) => ({
+        data: [...prevState.data, [...morningShifts, ...afternoonShifts]],
+      }));
+
+      console.log(`LINE ${i}`, [...morningShifts, ...afternoonShifts]);
+    }
+  };
+
+  getD = (d) => {
+    d = new Date(d);
+    return `${d.getHours()}:${d.getMinutes()}`;
   };
 
   settingsValid = () => {
-    const { nrLines, lineDuration, personName } = this.state;
+    const { nrLines, lineDuration, collaborators } = this.state;
 
-    if (isNaN(lineDuration) || personName.length === 0) {
+    if (isNaN(lineDuration) || collaborators.length < 1) {
       return false;
     }
 
@@ -154,9 +370,11 @@ export default class App extends React.PureComponent {
       shadePreviousAppointments,
       nrLines,
       lineDuration,
-      personName,
+      collaborators,
       alertOpen,
     } = this.state;
+
+    console.log("DATA", data);
 
     return (
       <Container maxWidth="500" margin={4}>
@@ -192,6 +410,7 @@ export default class App extends React.PureComponent {
               />
             </Grid>
             <Divider />
+            {/* <DateTimePicker /> */}
             <Grid item xs={12}>
               <Typography fontWeight={600} mb={1}>
                 Minuti per linea
@@ -212,11 +431,10 @@ export default class App extends React.PureComponent {
                 <Select
                   multiple
                   displayEmpty
-                  value={personName}
+                  value={collaborators}
                   onChange={this.handleChange}
                   input={<OutlinedInput />}
                   renderValue={(selected) => {
-                    console.log(selected.length);
                     if (selected.length === 0) {
                       return "Seleziona...";
                     }
@@ -275,7 +493,7 @@ export default class App extends React.PureComponent {
         <Divider sx={{ marginTop: "40px" }} />
         <Grid my={4}>
           <Typography variant="h4" fontWeight={600} component="h1" gutterBottom>
-            IAS Phone scheduler
+            Turni
           </Typography>
         </Grid>
         <Grid
@@ -285,7 +503,7 @@ export default class App extends React.PureComponent {
           alignItems="center"
         >
           <Grid container spacing={2}>
-            {[...Array(4)].map((e, i) => {
+            {[...Array(nrLines)].map((e, i) => {
               return (
                 <Grid item xs={12} sm={6} key={i}>
                   <Paper>
@@ -297,7 +515,7 @@ export default class App extends React.PureComponent {
                     >
                       Linea {i + 1}
                     </Typography>
-                    <Scheduler data={data}>
+                    <Scheduler data={data[i]}>
                       <ViewState currentDate={currentDate} />
                       <DayView startDayHour={8} endDayHour={16.5} />
                       <Appointments />
