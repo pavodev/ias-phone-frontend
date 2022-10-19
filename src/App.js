@@ -235,7 +235,7 @@ export default class App extends React.PureComponent {
             this.getD(endDate)
           );
 
-          continue;
+          break;
         }
 
         // Is in afternoon shift
@@ -257,7 +257,7 @@ export default class App extends React.PureComponent {
             this.getD(endDate)
           );
 
-          continue;
+          break;
         }
 
         // Is partially in the morning, partially in the afternoon
@@ -344,6 +344,86 @@ export default class App extends React.PureComponent {
       }));
 
       console.log(`LINE ${i}`, [...morningShifts, ...afternoonShifts]);
+    }
+  };
+
+  computeShifts2 = () => {
+    const morningLineDuration = getMinuteDifference(
+      this.state.morningShiftStart,
+      this.state.morningShiftEnd
+    );
+
+    const afternoonLineDuration = getMinuteDifference(
+      this.state.afternoonShiftStart,
+      this.state.afternoonShiftEnd
+    );
+
+    console.log(`MorningLineDuration: ${morningLineDuration}`);
+    console.log(`AfternoonLineDuration: ${afternoonLineDuration}`);
+
+    const lineDuration = morningLineDuration + afternoonLineDuration;
+    const shiftLength =
+      (lineDuration * this.state.nrLines) / this.state.collaborators.length;
+
+    console.log(
+      `Total line duration: ${lineDuration}, shift length: ${shiftLength}`
+    );
+
+    let shuffledCollaborators = this.state.collaborators.sort(
+      () => Math.random() - 0.5
+    );
+
+    shuffledCollaborators = shuffledCollaborators.map((collaborator) => {
+      return {
+        name: collaborator,
+        shiftMinutes: shiftLength,
+      };
+    });
+
+    let morningShifts = []; // first position is for the morning shifts of the first day, second position...
+    let afternoonShifts = [];
+
+    for (let i = 0; i < this.state.nrLines; i++) {
+      let numberOfShiftsInLine = lineDuration / shiftLength;
+      console.log(`Line ${i + 1} has ${numberOfShiftsInLine} shifts`);
+
+      // 0 - 180 / 180 - 300
+      let currentLineMorningDuration = morningLineDuration;
+      let currentLineAfternoonDuration = afternoonLineDuration;
+      let timeCounter = 0;
+
+      // 0 + 100 <= 180 ? --> [100][]
+      // 100 + 100 <= 180 ? --> NO
+      // 80 > 0 --> YES
+      // [100, 80][100-80]
+      // 100 - 80
+      while (timeCounter + shiftLength <= morningLineDuration) {
+        let shift = shiftLength;
+        timeCounter += shiftLength;
+        currentLineMorningDuration -= shift;
+        morningShifts.push(shift);
+      }
+
+      if (currentLineMorningDuration > 0) {
+        morningShifts.push(currentLineMorningDuration); // push the first part of the shift in the morning
+        afternoonShifts.push(shiftLength - currentLineMorningDuration); // push the remaining part in the afternoon
+        timeCounter += shiftLength;
+        currentLineAfternoonDuration -=
+          shiftLength - currentLineMorningDuration;
+      }
+
+      console.log(morningShifts, afternoonShifts);
+
+      // 200 + 100 <= 300 ? --> [100, 20][80, 100]
+
+      while (timeCounter + shiftLength <= lineDuration) {
+        let shift = shiftLength;
+        timeCounter += shiftLength;
+        currentLineAfternoonDuration -= shift;
+        afternoonShifts.push(shift);
+      }
+
+      console.log(afternoonShifts);
     }
   };
 
@@ -484,7 +564,7 @@ export default class App extends React.PureComponent {
               </Collapse>
             </Stack>
             <Grid item xs={12} mt={4}>
-              <Button onClick={this.computeShifts} variant="contained">
+              <Button onClick={this.computeShifts2} variant="contained">
                 Assegna turni
               </Button>
             </Grid>
