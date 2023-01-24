@@ -35,6 +35,7 @@ import {
   MORNING_SHIFT_START,
   collaborators,
 } from "./utility/constants";
+import { supabase } from "./database/client";
 
 const MenuProps = {
   PaperProps: {
@@ -51,7 +52,15 @@ export default class Settings extends Component {
 
     this.state = {
       alertOpen: false,
+      collaboratorsList: [],
     };
+  }
+
+  async componentDidMount() {
+    const { data, error } = await supabase.from("collaborators").select();
+    if (!error) {
+      this.setState({ collaboratorsList: data });
+    }
   }
 
   render() {
@@ -100,7 +109,7 @@ export default class Settings extends Component {
               <Select
                 multiple
                 value={this.props.collaborators}
-                onChange={this.props.handleChange}
+                onChange={this.props.handleCollaboratorsChange}
                 input={<OutlinedInput />}
                 renderValue={(selected) => {
                   if (selected.length === 0) {
@@ -109,7 +118,10 @@ export default class Settings extends Component {
                   return (
                     <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                       {selected.map((value) => (
-                        <Chip key={value.name} label={value.name} />
+                        <Chip
+                          key={value.name}
+                          label={`${value.name} ${value.surname}`}
+                        />
                       ))}
                     </Box>
                   );
@@ -119,9 +131,9 @@ export default class Settings extends Component {
                 <MenuItem disabled value="">
                   Seleziona...
                 </MenuItem>
-                {collaborators.map((collaborator) => (
-                  <MenuItem key={collaborator.name} value={collaborator.name}>
-                    {collaborator.name}
+                {this.state.collaboratorsList.map((collaborator) => (
+                  <MenuItem key={collaborator.id} value={collaborator}>
+                    {`${collaborator.name} ${collaborator.surname}`}
                   </MenuItem>
                 ))}
               </Select>

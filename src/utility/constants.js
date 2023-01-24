@@ -26,23 +26,7 @@ export const MORNING_SHIFT_END = [11, 45];
 export const AFTERNOON_SHIFT_START = [14, 0];
 export const AFTERNOON_SHIFT_END = [16, 0];
 
-export const collaborators = [
-  {
-    name: "Alen Gavranovic",
-  },
-  {
-    name: "Ivan Pavic",
-  },
-  {
-    name: "Pinco Pallino",
-  },
-  {
-    name: "Lionel Messi",
-  },
-  {
-    name: "Cristiano Ronaldo",
-  },
-];
+export const collaborators = [];
 
 export const ITEM_HEIGHT = 48;
 export const ITEM_PADDING_TOP = 8;

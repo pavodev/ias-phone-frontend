@@ -1,23 +1,32 @@
 import * as React from "react";
+
+// Material UI
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
 import Link from "@mui/material/Link";
-
 import Paper from "@mui/material/Paper";
-import {
-  AppointmentForm,
-  AppointmentTooltip,
-  CurrentTimeIndicator,
-  ViewState,
-} from "@devexpress/dx-react-scheduler";
+import { Divider, Grid } from "@mui/material";
+
+// React Scheduler
 import {
   Scheduler,
   DayView,
   Appointments,
+  AppointmentTooltip,
 } from "@devexpress/dx-react-scheduler-material-ui";
-import { Divider, Grid } from "@mui/material";
 
+import {
+  AppointmentForm,
+  CurrentTimeIndicator,
+  ViewState,
+} from "@devexpress/dx-react-scheduler";
+
+// React Date-time picker
+import DateTimePicker from "react-datetime-picker";
+
+// CONSTANTS
+// TODO allow users to get this data from the database API
 import {
   AFTERNOON_SHIFT_END,
   AFTERNOON_SHIFT_START,
@@ -28,27 +37,31 @@ import {
   MORNING_SHIFT_START,
   collaborators,
 } from "./utility/constants";
-import DateTimePicker from "react-datetime-picker";
+
+// UTILS
 import { getMinuteDifference } from "./utility/utils";
+
+// COMPONENTS
 import Settings from "./Settings";
+import { Copyright } from "./Copyright";
+import { supabase } from "./database/client";
 
 const currentDate = new Date();
 
-const minutes = 300;
-const lines = 2;
-
-function Copyright() {
-  return (
-    <Typography variant="body2" color="text.secondary" align="center">
-      {"Copyright © "}
-      <Link color="inherit" href="https://mui.com/">
-        Your Website
-      </Link>{" "}
-      {new Date().getFullYear()}
-      {"."}
-    </Typography>
-  );
-}
+// Appointment component
+export const Appointment = ({ children, style, data, ...restProps }) => (
+  <Appointments.Appointment
+    {...restProps}
+    data={data}
+    style={{
+      ...style,
+      backgroundColor: data.color,
+      color: data.color,
+    }}
+  >
+    {children}
+  </Appointments.Appointment>
+);
 
 export default class App extends React.PureComponent {
   constructor(props) {
@@ -95,17 +108,21 @@ export default class App extends React.PureComponent {
       nrLines: 2,
       lineDuration: 300,
       collaborators: collaborators,
+      selectedCollaborators: [],
       shadePreviousCells: true,
       shadePreviousAppointments: true,
       updateInterval: 10000,
     };
   }
 
-  componentDidMount() {
-    // this.setState({
-    //   collaborators: [],
-    // });
+  async componentDidMount() {
+    const { data, error } = await supabase.from("collaborators").select();
+    console.log(data);
+    if (!error) {
+      this.setState({ collaborators: data });
+    }
   }
+
   handleNrLinesChange = (event) => {
     const {
       target: { value },
@@ -123,12 +140,14 @@ export default class App extends React.PureComponent {
   };
 
   handleCollaboratorsChange = (event) => {
+    console.log(event);
     const {
       target: { value },
     } = event;
     this.setState({
       // On autofill we get a stringified value.
-      collaborators: typeof value === "string" ? value.split(",") : value,
+      selectedCollaborators:
+        typeof value === "string" ? value.split(",") : value,
     });
   };
 
@@ -150,22 +169,17 @@ export default class App extends React.PureComponent {
 
     const lineDuration = morningLineDuration + afternoonLineDuration;
     const shiftLength =
-      (lineDuration * this.state.nrLines) / this.state.collaborators.length;
+      (lineDuration * this.state.nrLines) /
+      this.state.selectedCollaborators.length;
 
     console.log(
       `Total line duration: ${lineDuration}, shift length: ${shiftLength}`
     );
 
-    let shuffledCollaborators = this.state.collaborators.sort(
+    let shuffledCollaborators = this.state.selectedCollaborators.sort(
       () => Math.random() - 0.5
     );
-
-    shuffledCollaborators = shuffledCollaborators.map((collaborator) => {
-      return {
-        name: collaborator.name,
-        shiftMinutes: shiftLength,
-      };
-    });
+    console.log("THESE WERE SELECTED: ", this.state.selectedCollaborators);
 
     let previousLineRemaining = 0;
     let lineShifts = [];
@@ -202,7 +216,6 @@ export default class App extends React.PureComponent {
         let nextShift = minuteCounter + shift; // 0 + 200 = 200
         if (nextShift <= morningLineDuration) {
           // 200 <= 180 --> No
-          console.log("mc + s = ", nextShift);
           morningShifts.push(shift);
           minuteCounter += shift;
           if (minuteCounter === lineDuration) minuteCounter = 0;
@@ -219,15 +232,6 @@ export default class App extends React.PureComponent {
           minuteCounter += shift;
           if (minuteCounter === lineDuration) minuteCounter = 0;
         }
-
-        // if (
-        //   nextShift >= this.state.afternoonShiftStart &&
-        //   nextShift <= lineDuration
-        // ) {
-        //   afternoonShifts.push(shift);
-        //   minuteCounter += shift;
-        //   if (minuteCounter === lineDuration) minuteCounter = 0;
-        // }
       });
 
       splittedLineShifts.push([morningShifts, afternoonShifts]);
@@ -238,24 +242,33 @@ export default class App extends React.PureComponent {
 
     let collaboratorCounter = 0;
     let shiftMinutesCounter = 0;
+    let currentCollaborator = null;
 
     for (let i = 0; i < this.state.nrLines; i++) {
       let morningShiftsDates = [];
       let afternoonShiftsDates = [];
       let startingDate = this.state.morningShiftStart;
+      currentCollaborator = shuffledCollaborators[collaboratorCounter];
 
       splittedLineShifts[i][0].forEach((shift) => {
+        shiftMinutesCounter += shift;
+        console.log("morning: ", shiftMinutesCounter);
+
+        if (shiftMinutesCounter >= shiftLength) {
+          shiftMinutesCounter = 0;
+          currentCollaborator = shuffledCollaborators[collaboratorCounter];
+          collaboratorCounter++;
+          console.log("NEW COLLABORATOR: ", collaboratorCounter);
+        } else {
+          currentCollaborator = shuffledCollaborators[collaboratorCounter];
+        }
+
         morningShiftsDates.push({
-          title: shuffledCollaborators[collaboratorCounter].name,
+          title: `${currentCollaborator.name} ${currentCollaborator.surname}`,
+          color: currentCollaborator.color,
           startDate: startingDate,
           endDate: new Date(startingDate.getTime() + shift * 60000),
         });
-
-        shiftMinutesCounter += shift;
-        if (shiftMinutesCounter === shiftLength) {
-          shiftMinutesCounter = 0;
-          collaboratorCounter++;
-        }
 
         startingDate = new Date(startingDate.getTime() + shift * 60000);
       });
@@ -263,33 +276,35 @@ export default class App extends React.PureComponent {
       startingDate = this.state.afternoonShiftStart;
 
       splittedLineShifts[i][1].forEach((shift) => {
+        shiftMinutesCounter += shift;
+        console.log("afternoon: ", shiftMinutesCounter);
+
+        if (shiftMinutesCounter >= shiftLength) {
+          shiftMinutesCounter = 0;
+          currentCollaborator = shuffledCollaborators[collaboratorCounter];
+          collaboratorCounter++;
+          console.log("NEW COLLABORATOR: ", collaboratorCounter);
+        } else {
+          currentCollaborator = shuffledCollaborators[collaboratorCounter];
+        }
+
         afternoonShiftsDates.push({
-          title: shuffledCollaborators[collaboratorCounter].name,
+          title: `${currentCollaborator.name} ${currentCollaborator.surname}`,
+          color: currentCollaborator.color,
           startDate: startingDate,
           endDate: new Date(startingDate.getTime() + shift * 60000),
         });
 
-        shiftMinutesCounter += shift;
-        if (shiftMinutesCounter === shiftLength) {
-          shiftMinutesCounter = 0;
-          collaboratorCounter++;
-        }
         startingDate = new Date(startingDate.getTime() + shift * 60000);
       });
 
+      console.log([[...morningShiftsDates, ...afternoonShiftsDates]]);
       this.setState((prevState) => ({
         data: [
           ...prevState.data,
           [...morningShiftsDates, ...afternoonShiftsDates],
         ],
       }));
-
-      // console.log(morningShiftsDates, afternoonShiftsDates);
-      // console.log(this.state.data);
-      console.log(`LINE ${i}`, [
-        ...morningShiftsDates,
-        ...afternoonShiftsDates,
-      ]);
     }
 
     console.log(splittedLineShifts, computedShifts);
@@ -309,8 +324,6 @@ export default class App extends React.PureComponent {
     let morningEndMinute = morningLineDuration;
     let afternoonEndMinute = morningEndMinute + afternoonLineDuration;
 
-    // console.log(morningEndMinute, afternoonEndMinute);
-
     let currentMinutePosition = 0;
     let shifts = [];
 
@@ -328,7 +341,6 @@ export default class App extends React.PureComponent {
     }
 
     while (currentMinutePosition + shiftLength <= afternoonEndMinute) {
-      // console.log(currentMinutePosition + shiftLength);
       shifts.push(currentMinutePosition + shiftLength);
       currentMinutePosition = currentMinutePosition + shiftLength;
     }
@@ -336,19 +348,11 @@ export default class App extends React.PureComponent {
     // Reached the end, check if we consumed the time in this line
     if (currentMinutePosition != afternoonEndMinute) {
       shifts.push(afternoonEndMinute);
-
-      // console.log(
-      //   shifts,
-      //   shiftLength - (afternoonEndMinute - currentMinutePosition)
-      // );
-
       return {
         shifts,
         remaining: shiftLength - (afternoonEndMinute - currentMinutePosition),
       };
     }
-
-    // console.log(shifts);
 
     return {
       shifts,
@@ -402,7 +406,7 @@ export default class App extends React.PureComponent {
           <Settings
             nrLines={nrLines}
             handleNrLinesChange={this.handleNrLinesChange}
-            collaborators={this.state.collaborators}
+            collaborators={this.state.selectedCollaborators}
             handleCollaboratorsChange={this.handleCollaboratorsChange}
             lineDuration={this.state.lineDuration}
             handleLineDurationChange={this.handleLineDurationChange}
@@ -423,6 +427,7 @@ export default class App extends React.PureComponent {
                   <Paper>
                     <Typography
                       variant="h5"
+                      padding="10px 0 10px 10px"
                       fontWeight={600}
                       component="h1"
                       gutterBottom
@@ -432,7 +437,8 @@ export default class App extends React.PureComponent {
                     <Scheduler locale={locale} data={data[i]}>
                       <ViewState currentDate={currentDate} />
                       <DayView startDayHour={8} endDayHour={16.5} />
-                      <Appointments />
+                      <Appointments appointmentComponent={Appointment} />
+                      <AppointmentTooltip />
                       <CurrentTimeIndicator
                         shadePreviousCells={shadePreviousCells}
                         shadePreviousAppointments={shadePreviousAppointments}
@@ -445,6 +451,7 @@ export default class App extends React.PureComponent {
             })}
           </Grid>
         </Grid>
+        <Copyright />
       </Container>
     );
   }
