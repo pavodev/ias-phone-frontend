@@ -69,7 +69,7 @@ export default class Settings extends Component {
         <Typography variant="h4" fontWeight={600} component="h1" gutterBottom>
           Impostazioni
         </Typography>
-        <Grid container spacing={2} pl={3} pt={3}>
+        <Grid container spacing={2}>
           <Grid item xs={12}>
             <Typography fontWeight={600} mb={1}>
               Numero di linee
@@ -101,12 +101,13 @@ export default class Settings extends Component {
           inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
         />
       </Grid> */}
-          <Grid item xs={12} maxWidth={1000}>
+          <Grid item xs={12} maxWidth={"100%"}>
             <Typography fontWeight={600} mb={1}>
               Collaboratori
             </Typography>
             <FormControl sx={{ width: 400, maxWidth: "100%" }}>
               <Select
+                sx={{ maxWidth: "100%" }}
                 multiple
                 value={this.props.collaborators}
                 onChange={this.props.handleCollaboratorsChange}

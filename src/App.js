@@ -391,7 +391,7 @@ export default class App extends React.PureComponent {
     } = this.state;
 
     return (
-      <Container maxWidth="500" margin={4}>
+      <Container maxWidth="100%" margin={4}>
         <Typography
           variant="h2"
           fontWeight={700}
@@ -402,7 +402,7 @@ export default class App extends React.PureComponent {
           IAS Turni telefono
         </Typography>
         <Divider sx={{ marginTop: "40px", marginBottom: "40px" }} />
-        <Box width={400}>
+        <Box maxWidth="100%">
           <Settings
             nrLines={nrLines}
             handleNrLinesChange={this.handleNrLinesChange}
@@ -419,7 +419,7 @@ export default class App extends React.PureComponent {
             Turni
           </Typography>
         </Grid>
-        <Grid my={4} w={"100&"} justifyContent="center" alignItems="center">
+        <Grid m={1} w={"100%"} justifyContent="center" alignItems="center">
           <Grid container spacing={2}>
             {[...Array(nrLines)].map((e, i) => {
               return (
