@@ -6,6 +6,8 @@ import Link from "@mui/material/Link";
 
 import Paper from "@mui/material/Paper";
 import {
+  AppointmentForm,
+  AppointmentTooltip,
   CurrentTimeIndicator,
   ViewState,
 } from "@devexpress/dx-react-scheduler";
@@ -83,7 +85,7 @@ export default class App extends React.PureComponent {
 
     this.state = {
       data: [],
-
+      locale: "it-IT",
       morningShiftStart: new Date(
         today.getFullYear(),
         today.getMonth(),
@@ -117,9 +119,15 @@ export default class App extends React.PureComponent {
         0
       ),
 
-      nrLines: 1,
+      nrLines: 2,
       lineDuration: 300,
-      collaborators: ["Alen Gavranovic", "Ivan Pavic", "Pinco Pallino"],
+      collaborators: [
+        "Alen Gavranovic",
+        "Ivan Pavic",
+        "Pinco Pallino",
+        "Lionel Messi",
+        "Cristiano Ronaldo",
+      ],
       alertOpen: false,
       shadePreviousCells: true,
       shadePreviousAppointments: true,
@@ -128,9 +136,9 @@ export default class App extends React.PureComponent {
   }
 
   componentDidMount() {
-    this.setState({
-      collaborators: [],
-    });
+    // this.setState({
+    //   collaborators: [],
+    // });
   }
   handleNrLinesChange = (event) => {
     const {
@@ -348,6 +356,7 @@ export default class App extends React.PureComponent {
   };
 
   computeShifts2 = () => {
+    this.setState({ data: [] });
     const morningLineDuration = getMinuteDifference(
       this.state.morningShiftStart,
       this.state.morningShiftEnd
@@ -357,9 +366,6 @@ export default class App extends React.PureComponent {
       this.state.afternoonShiftStart,
       this.state.afternoonShiftEnd
     );
-
-    console.log(`MorningLineDuration: ${morningLineDuration}`);
-    console.log(`AfternoonLineDuration: ${afternoonLineDuration}`);
 
     const lineDuration = morningLineDuration + afternoonLineDuration;
     const shiftLength =
@@ -382,50 +388,637 @@ export default class App extends React.PureComponent {
 
     let morningShifts = []; // first position is for the morning shifts of the first day, second position...
     let afternoonShifts = [];
+    let previousLineRemainingTime = 0;
 
     for (let i = 0; i < this.state.nrLines; i++) {
       let numberOfShiftsInLine = lineDuration / shiftLength;
+      console.log(`--------------- LINE ${i} --------------`);
       console.log(`Line ${i + 1} has ${numberOfShiftsInLine} shifts`);
+      console.log(
+        `Morning has ${morningLineDuration / shiftLength}\nAfternoon has ${
+          afternoonLineDuration / shiftLength
+        }`
+      );
+
+      // 2ND VERSION
+
+      // // 0.9 + 0.6 / 0.9 + 0.6
+      // let nrMShifts = morningLineDuration / shiftLength;
+      // let nrAShifts = afternoonLineDuration / shiftLength;
+      // let currentMShifts = [];
+      // let currentAShifts = [];
+
+      // if (nrMShifts < 1) {
+      //   currentMShifts.push(nrMShifts * shiftLength);
+      //   currentAShifts.push((1 - nrMShifts) * shiftLength);
+      //   nrAShifts = nrAShifts - (1 - nrMShifts);
+      //   currentAShifts.push(nrAShifts * shiftLength);
+      // }
+
+      // if (nrMShifts >= 1 && nrMShifts < 2) {
+      //   currentMShifts.push(shiftLength);
+      //   currentAShifts.push((nrMShifts - 1) * shiftLength);
+      // }
+
+      // 1ST VERSION
 
       // 0 - 180 / 180 - 300
       let currentLineMorningDuration = morningLineDuration;
       let currentLineAfternoonDuration = afternoonLineDuration;
-      let timeCounter = 0;
+      let currentLineMorningShifts = [];
+      let currentLineAfternoonShifts = [];
+      let timeCounter = previousLineRemainingTime;
+      previousLineRemainingTime = 0;
+
+      console.log("Time counter: ", timeCounter);
 
       // 0 + 100 <= 180 ? --> [100][]
       // 100 + 100 <= 180 ? --> NO
       // 80 > 0 --> YES
       // [100, 80][100-80]
       // 100 - 80
+
+      // Consume previous line remaining time
+      if (timeCounter > 0 && timeCounter <= morningLineDuration) {
+        console.log("Add remaning previous shift amount");
+        currentLineMorningDuration -= timeCounter;
+        currentLineMorningShifts.push(timeCounter);
+      }
+
       while (timeCounter + shiftLength <= morningLineDuration) {
+        console.log(`Morning Shift length: ${timeCounter + shiftLength}`);
         let shift = shiftLength;
         timeCounter += shiftLength;
         currentLineMorningDuration -= shift;
-        morningShifts.push(shift);
+        currentLineMorningShifts.push(shift);
       }
 
+      timeCounter = 0;
+
       if (currentLineMorningDuration > 0) {
-        morningShifts.push(currentLineMorningDuration); // push the first part of the shift in the morning
-        afternoonShifts.push(shiftLength - currentLineMorningDuration); // push the remaining part in the afternoon
-        timeCounter += shiftLength;
+        console.log(
+          "Current Line Morning Duration: ",
+          currentLineMorningDuration
+        );
+        currentLineMorningShifts.push(currentLineMorningDuration); // push the first part of the shift in the morning
+        currentLineAfternoonShifts.push(
+          shiftLength - currentLineMorningDuration
+        ); // push the remaining part in the afternoon
+        timeCounter += shiftLength - currentLineMorningDuration;
         currentLineAfternoonDuration -=
           shiftLength - currentLineMorningDuration;
       }
 
-      console.log(morningShifts, afternoonShifts);
+      // console.log(currentLineMorningShifts, currentLineAfternoonShifts);
 
       // 200 + 100 <= 300 ? --> [100, 20][80, 100]
 
-      while (timeCounter + shiftLength <= lineDuration) {
+      console.log(
+        "TIME LEFT IN THE AFTERNOON: ",
+        timeCounter,
+        shiftLength,
+        currentLineAfternoonDuration
+      );
+
+      while (timeCounter + shiftLength <= afternoonLineDuration) {
+        console.log(`Afternoon Shift length: ${timeCounter + shiftLength}`);
         let shift = shiftLength;
         timeCounter += shiftLength;
         currentLineAfternoonDuration -= shift;
-        afternoonShifts.push(shift);
+        currentLineAfternoonShifts.push(shift);
       }
 
-      console.log(afternoonShifts);
+      if (currentLineAfternoonDuration > 0) {
+        if (shiftLength > currentLineAfternoonDuration) {
+          console.log("NEED TO SPLIT THE SHIFT");
+          previousLineRemainingTime =
+            shiftLength - currentLineAfternoonDuration;
+          currentLineAfternoonShifts.push(
+            shiftLength - currentLineAfternoonDuration
+          );
+        } else {
+          console.log("must split the shift in two lines");
+          previousLineRemainingTime = 0;
+          currentLineAfternoonShifts.push(shiftLength);
+        }
+      }
+
+      morningShifts.push(currentLineMorningShifts);
+      afternoonShifts.push(currentLineAfternoonShifts);
+    }
+    console.log(morningShifts, afternoonShifts);
+
+    // ASSIGN DATA
+
+    let collaboratorCounter = 0;
+    let shiftMinutesCounter = 0;
+
+    for (let i = 0; i < this.state.nrLines; i++) {
+      let morningShiftsDates = [];
+      let afternoonShiftsDates = [];
+      let startingDate = this.state.morningShiftStart;
+
+      morningShifts[i].forEach((shift) => {
+        morningShiftsDates.push({
+          title: shuffledCollaborators[collaboratorCounter].name,
+          startDate: startingDate,
+          endDate: new Date(startingDate.getTime() + shift * 60000),
+        });
+
+        shiftMinutesCounter += shift;
+        if (shiftMinutesCounter === shiftLength) {
+          shiftMinutesCounter = 0;
+          collaboratorCounter++;
+        }
+
+        startingDate = new Date(startingDate.getTime() + shift * 60000);
+      });
+
+      startingDate = this.state.afternoonShiftStart;
+
+      afternoonShifts[i].forEach((shift) => {
+        afternoonShiftsDates.push({
+          title: shuffledCollaborators[collaboratorCounter].name,
+          startDate: startingDate,
+          endDate: new Date(startingDate.getTime() + shift * 60000),
+        });
+
+        shiftMinutesCounter += shift;
+        if (shiftMinutesCounter === shiftLength) {
+          shiftMinutesCounter = 0;
+          collaboratorCounter++;
+        }
+        startingDate = new Date(startingDate.getTime() + shift * 60000);
+      });
+
+      this.setState((prevState) => ({
+        data: [
+          ...prevState.data,
+          [...morningShiftsDates, ...afternoonShiftsDates],
+        ],
+      }));
+
+      // console.log(morningShiftsDates, afternoonShiftsDates);
+      // console.log(this.state.data);
+      console.log(`LINE ${i}`, [
+        ...morningShiftsDates,
+        ...afternoonShiftsDates,
+      ]);
     }
   };
+
+  computeShifts3 = () => {
+    const morningLineDuration = getMinuteDifference(
+      this.state.morningShiftStart,
+      this.state.morningShiftEnd
+    );
+
+    const afternoonLineDuration = getMinuteDifference(
+      this.state.afternoonShiftStart,
+      this.state.afternoonShiftEnd
+    );
+
+    const lineDuration = morningLineDuration + afternoonLineDuration;
+    const shiftLength =
+      (lineDuration * this.state.nrLines) / this.state.collaborators.length;
+    const nrShifts = lineDuration / shiftLength;
+    const nrMorningShifts = morningLineDuration / shiftLength;
+    const nrAfternoonShifts = afternoonLineDuration / shiftLength;
+
+    console.log(`MorningLineDuration: ${morningLineDuration}`);
+    console.log(`AfternoonLineDuration: ${afternoonLineDuration}`);
+    console.log(
+      `Total line duration: ${lineDuration}, shift length: ${shiftLength}`
+    );
+    console.log(`Number of shifts: ${nrShifts}`);
+    console.log(
+      `Number of morning/afternoon shifts: ${nrMorningShifts}/${nrAfternoonShifts}`
+    );
+
+    let shuffledCollaborators = this.state.collaborators.sort(
+      () => Math.random() - 0.5
+    );
+
+    shuffledCollaborators = shuffledCollaborators.map((collaborator) => {
+      return {
+        name: collaborator,
+        shiftLength,
+        hasMorningShift: 0,
+        hasAfternoonShift: 0,
+        hasSplitLineShift: 0,
+      };
+    });
+    console.log(`Collaborators`, shuffledCollaborators);
+
+    let morningShifts = []; // first position is for the morning shifts of the first day, second position...
+    let afternoonShifts = [];
+    let previousLineRemainingTime = 0;
+
+    // is in the morning
+    // is in the afternoon
+    // is partially in the morning and partially in the afternoon
+
+    let startAfternoon = this.getD(this.state.afternoonShiftStart);
+    let endAfternoon = this.getD(this.state.afternoonShiftEnd);
+    let startMorning = this.getD(this.state.morningShiftStart);
+    let endMorning = this.getD(this.state.morningShiftEnd);
+
+    let shift = [];
+
+    let currentLineDuration = lineDuration;
+    let currentStartTime = this.state.morningShiftStart;
+
+    while (currentLineDuration > 0) {
+      console.log("current start time: ", currentStartTime);
+      let nextShift = currentStartTime.getTime() + shiftLength * 60000;
+
+      // It's in the morning
+      if (nextShift <= this.state.morningShiftEnd.getTime()) {
+        currentStartTime = new Date(
+          currentStartTime.getTime() + shiftLength * 60000
+        );
+        console.log("It's in the morning!");
+      }
+
+      // It's in the afternoon
+      else if (
+        nextShift >= this.state.afternoonShiftStart.getTime() &&
+        nextShift <= this.state.afternoonShiftEnd.getTime()
+      ) {
+        currentStartTime = new Date(
+          currentStartTime.getTime() + shiftLength * 60000
+        );
+        console.log("It's in the afternoon!");
+      } else if (nextShift >= this.morningShiftEnd) {
+        console.log("Partially in the morning and afternoon");
+      } else {
+        currentStartTime = new Date(
+          currentStartTime.getTime() + shiftLength * 60000
+        );
+      }
+
+      currentLineDuration = currentLineDuration - shiftLength;
+    }
+  };
+
+  roundToDecimal = (value) => {
+    return Math.round(value);
+  };
+
+  computeShifts4 = () => {
+    this.setState({ data: [] });
+    const morningLineDuration = getMinuteDifference(
+      this.state.morningShiftStart,
+      this.state.morningShiftEnd
+    );
+
+    const afternoonLineDuration = getMinuteDifference(
+      this.state.afternoonShiftStart,
+      this.state.afternoonShiftEnd
+    );
+
+    const lineDuration = morningLineDuration + afternoonLineDuration;
+    const shiftLength =
+      (lineDuration * this.state.nrLines) / this.state.collaborators.length;
+
+    console.log(
+      `Total line duration: ${lineDuration}, shift length: ${shiftLength}`
+    );
+
+    let shuffledCollaborators = this.state.collaborators.sort(
+      () => Math.random() - 0.5
+    );
+
+    shuffledCollaborators = shuffledCollaborators.map((collaborator) => {
+      return {
+        name: collaborator,
+        shiftMinutes: shiftLength,
+      };
+    });
+
+    let morningShifts = []; // first position is for the morning shifts of the first day, second position...
+    let afternoonShifts = [];
+    let previousLineRemainingTime = 0;
+
+    for (let i = 0; i < this.state.nrLines; i++) {
+      let morningShiftCounter = 0;
+      let afternoonShiftCounter = 0;
+
+      let currentLineMorningShifts = [];
+      let currentLineAfternoonShifts = [];
+      let numberOfShiftsInLine = this.roundToDecimal(
+        lineDuration / shiftLength
+      );
+      let numberOfShiftsMorning = morningLineDuration / shiftLength;
+
+      let numberOfShiftsAfternoon = afternoonLineDuration / shiftLength;
+
+      console.log(`--------------- LINE ${i} --------------`);
+      console.log(
+        `Previous line remaining shifts: ${previousLineRemainingTime}`
+      );
+      console.log(`Line ${i + 1} has ${numberOfShiftsInLine} shifts`);
+      console.log(
+        `Morning has ${numberOfShiftsMorning}\nAfternoon has ${numberOfShiftsAfternoon}`
+      );
+
+      if (previousLineRemainingTime > 0) {
+        currentLineMorningShifts.push(
+          this.roundToDecimal(shiftLength * previousLineRemainingTime)
+        );
+        morningShiftCounter = previousLineRemainingTime;
+      }
+
+      previousLineRemainingTime = 0;
+
+      // if (numberOfShiftsMorning >= 1)
+      morningShiftCounter++;
+
+      while (morningShiftCounter <= numberOfShiftsMorning) {
+        currentLineMorningShifts.push(shiftLength);
+        morningShiftCounter++;
+      }
+
+      morningShiftCounter--;
+
+      if (morningShiftCounter < numberOfShiftsMorning) {
+        currentLineMorningShifts.push(
+          this.roundToDecimal(
+            shiftLength * (numberOfShiftsMorning - morningShiftCounter)
+          )
+        );
+        currentLineAfternoonShifts.push(
+          shiftLength -
+            this.roundToDecimal(
+              shiftLength * (numberOfShiftsMorning - morningShiftCounter)
+            )
+        );
+
+        afternoonShiftCounter =
+          afternoonShiftCounter + (numberOfShiftsMorning - morningShiftCounter);
+      }
+
+      // if (numberOfShiftsAfternoon >= 1)
+      afternoonShiftCounter++;
+
+      while (afternoonShiftCounter < numberOfShiftsAfternoon) {
+        console.log("AFTERNOON SHIFT");
+        currentLineAfternoonShifts.push(shiftLength);
+        afternoonShiftCounter++;
+      }
+
+      afternoonShiftCounter--;
+
+      console.log(afternoonShiftCounter, numberOfShiftsAfternoon);
+
+      if (afternoonShiftCounter <= numberOfShiftsAfternoon) {
+        let lastShift = numberOfShiftsAfternoon - afternoonShiftCounter;
+        console.log("Last shift: ", lastShift);
+        if (
+          lastShift > numberOfShiftsAfternoon - 0.1 ||
+          lastShift < numberOfShiftsAfternoon + 0.1
+        ) {
+          currentLineAfternoonShifts.push(
+            this.roundToDecimal(shiftLength * numberOfShiftsAfternoon)
+          );
+        } else {
+          currentLineAfternoonShifts.push(
+            shiftLength - this.roundToDecimal(shiftLength * lastShift)
+          );
+        }
+        previousLineRemainingTime =
+          numberOfShiftsAfternoon - afternoonShiftCounter;
+      }
+
+      morningShifts.push(currentLineMorningShifts);
+      afternoonShifts.push(currentLineAfternoonShifts);
+
+      console.log("***** SHIFTS *****");
+      console.log(currentLineMorningShifts, currentLineAfternoonShifts);
+    }
+
+    // ASSIGN DATA
+
+    let collaboratorCounter = 0;
+    let shiftMinutesCounter = 0;
+
+    for (let i = 0; i < this.state.nrLines; i++) {
+      let morningShiftsDates = [];
+      let afternoonShiftsDates = [];
+      let startingDate = this.state.morningShiftStart;
+
+      morningShifts[i].forEach((shift) => {
+        morningShiftsDates.push({
+          title: shuffledCollaborators[collaboratorCounter].name,
+          startDate: startingDate,
+          endDate: new Date(startingDate.getTime() + shift * 60000),
+        });
+
+        shiftMinutesCounter += shift;
+        if (shiftMinutesCounter === shiftLength) {
+          shiftMinutesCounter = 0;
+          collaboratorCounter++;
+        }
+
+        startingDate = new Date(startingDate.getTime() + shift * 60000);
+      });
+
+      startingDate = this.state.afternoonShiftStart;
+
+      afternoonShifts[i].forEach((shift) => {
+        afternoonShiftsDates.push({
+          title: shuffledCollaborators[collaboratorCounter].name,
+          startDate: startingDate,
+          endDate: new Date(startingDate.getTime() + shift * 60000),
+        });
+
+        shiftMinutesCounter += shift;
+        if (shiftMinutesCounter === shiftLength) {
+          shiftMinutesCounter = 0;
+          collaboratorCounter++;
+        }
+        startingDate = new Date(startingDate.getTime() + shift * 60000);
+      });
+
+      this.setState((prevState) => ({
+        data: [
+          ...prevState.data,
+          [...morningShiftsDates, ...afternoonShiftsDates],
+        ],
+      }));
+
+      // console.log(morningShiftsDates, afternoonShiftsDates);
+      // console.log(this.state.data);
+      console.log(`LINE ${i}`, [
+        ...morningShiftsDates,
+        ...afternoonShiftsDates,
+      ]);
+    }
+  };
+
+  computeShifts5 = () => {
+    this.setState({ data: [] });
+    const morningLineDuration = getMinuteDifference(
+      this.state.morningShiftStart,
+      this.state.morningShiftEnd
+    );
+
+    const afternoonLineDuration = getMinuteDifference(
+      this.state.afternoonShiftStart,
+      this.state.afternoonShiftEnd
+    );
+
+    const lineDuration = morningLineDuration + afternoonLineDuration;
+    const shiftLength =
+      (lineDuration * this.state.nrLines) / this.state.collaborators.length;
+
+    console.log(
+      `Total line duration: ${lineDuration}, shift length: ${shiftLength}`
+    );
+
+    let shuffledCollaborators = this.state.collaborators.sort(
+      () => Math.random() - 0.5
+    );
+
+    shuffledCollaborators = shuffledCollaborators.map((collaborator) => {
+      return {
+        name: collaborator,
+        shiftMinutes: shiftLength,
+      };
+    });
+
+    let previousLineRemaining = 0;
+    let lineShifts = [];
+    for (let i = 0; i < this.state.nrLines; i++) {
+      let result = this.consumeLine(shiftLength, previousLineRemaining);
+      previousLineRemaining = result.remaining;
+      console.log(
+        `Line ${i} shifts: ${result.shifts}, \nRemaining time: ${previousLineRemaining}`
+      );
+
+      lineShifts.push(result.shifts);
+    }
+
+    // Split in mornings and afternoons
+    let splittedLineShifts = [];
+    let computedShifts = [];
+
+    lineShifts.forEach((shifts) => {
+      let minuteCounter = 0;
+      let morningShifts = [];
+      let afternoonShifts = [];
+      let currentLineComputedShifts = [];
+
+      for (let i = 0; i < shifts.length; i++) {
+        if (i === 0) {
+          currentLineComputedShifts.push(shifts[i]);
+        } else {
+          currentLineComputedShifts.push(shifts[i] - shifts[i - 1]);
+        }
+      }
+
+      currentLineComputedShifts.forEach((shift) => {
+        // 200
+        let nextShift = minuteCounter + shift; // 0 + 200 = 200
+        if (nextShift <= morningLineDuration) {
+          // 200 <= 180 --> No
+          console.log("mc + s = ", nextShift);
+          morningShifts.push(shift);
+          minuteCounter += shift;
+          if (minuteCounter === lineDuration) minuteCounter = 0;
+          nextShift = 0; // avoid the last if statement
+        } else if (minuteCounter < morningLineDuration) {
+          let remaining = shift - (morningLineDuration - minuteCounter); // 200 - (180 - 0) = 20
+          morningShifts.push(morningLineDuration - minuteCounter); // 180
+          afternoonShifts.push(remaining); // 20
+          minuteCounter += shift; //
+          if (minuteCounter === lineDuration) minuteCounter = 0;
+          nextShift = 0; // avoid the last if statement
+        } else {
+          afternoonShifts.push(shift);
+          minuteCounter += shift;
+          if (minuteCounter === lineDuration) minuteCounter = 0;
+        }
+
+        // if (
+        //   nextShift >= this.state.afternoonShiftStart &&
+        //   nextShift <= lineDuration
+        // ) {
+        //   afternoonShifts.push(shift);
+        //   minuteCounter += shift;
+        //   if (minuteCounter === lineDuration) minuteCounter = 0;
+        // }
+      });
+
+      splittedLineShifts.push([morningShifts, afternoonShifts]);
+      computedShifts.push(currentLineComputedShifts);
+    });
+
+    console.log(splittedLineShifts, computedShifts);
+  };
+
+  consumeLine = (shiftLength = 0, previousLineRemaining = 0) => {
+    const morningLineDuration = getMinuteDifference(
+      this.state.morningShiftStart,
+      this.state.morningShiftEnd
+    );
+
+    const afternoonLineDuration = getMinuteDifference(
+      this.state.afternoonShiftStart,
+      this.state.afternoonShiftEnd
+    );
+
+    let morningEndMinute = morningLineDuration;
+    let afternoonEndMinute = morningEndMinute + afternoonLineDuration;
+
+    // console.log(morningEndMinute, afternoonEndMinute);
+
+    let currentMinutePosition = 0;
+    let shifts = [];
+
+    if (previousLineRemaining > 0) {
+      if (previousLineRemaining <= afternoonEndMinute) {
+        shifts.push(previousLineRemaining);
+        currentMinutePosition = previousLineRemaining;
+      } else {
+        shifts.push(afternoonEndMinute);
+        return {
+          shifts,
+          remaining: previousLineRemaining - afternoonEndMinute,
+        };
+      }
+    }
+
+    while (currentMinutePosition + shiftLength <= afternoonEndMinute) {
+      // console.log(currentMinutePosition + shiftLength);
+      shifts.push(currentMinutePosition + shiftLength);
+      currentMinutePosition = currentMinutePosition + shiftLength;
+    }
+
+    // Reached the end, check if we consumed the time in this line
+    if (currentMinutePosition != afternoonEndMinute) {
+      shifts.push(afternoonEndMinute);
+
+      // console.log(
+      //   shifts,
+      //   shiftLength - (afternoonEndMinute - currentMinutePosition)
+      // );
+
+      return {
+        shifts,
+        remaining: shiftLength - (afternoonEndMinute - currentMinutePosition),
+      };
+    }
+
+    // console.log(shifts);
+
+    return {
+      shifts,
+      remaining: 0,
+    };
+  };
+
+  checkIfValid() {}
 
   getD = (d) => {
     d = new Date(d);
@@ -452,9 +1045,8 @@ export default class App extends React.PureComponent {
       lineDuration,
       collaborators,
       alertOpen,
+      locale,
     } = this.state;
-
-    console.log("DATA", data);
 
     return (
       <Container maxWidth="500" margin={4}>
@@ -491,7 +1083,7 @@ export default class App extends React.PureComponent {
             </Grid>
             <Divider />
             {/* <DateTimePicker /> */}
-            <Grid item xs={12}>
+            {/* <Grid item xs={12}>
               <Typography fontWeight={600} mb={1}>
                 Minuti per linea
               </Typography>
@@ -502,7 +1094,7 @@ export default class App extends React.PureComponent {
                 onChange={this.handleLineDurationChange}
                 inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
               />
-            </Grid>
+            </Grid> */}
             <Grid item xs={12} maxWidth={1000}>
               <Typography fontWeight={600} mb={1}>
                 Collaboratori
@@ -510,7 +1102,6 @@ export default class App extends React.PureComponent {
               <FormControl sx={{ width: 400 }}>
                 <Select
                   multiple
-                  displayEmpty
                   value={collaborators}
                   onChange={this.handleChange}
                   input={<OutlinedInput />}
@@ -564,7 +1155,7 @@ export default class App extends React.PureComponent {
               </Collapse>
             </Stack>
             <Grid item xs={12} mt={4}>
-              <Button onClick={this.computeShifts2} variant="contained">
+              <Button onClick={this.computeShifts5} variant="contained">
                 Assegna turni
               </Button>
             </Grid>
@@ -595,7 +1186,7 @@ export default class App extends React.PureComponent {
                     >
                       Linea {i + 1}
                     </Typography>
-                    <Scheduler data={data[i]}>
+                    <Scheduler locale={locale} data={data[i]}>
                       <ViewState currentDate={currentDate} />
                       <DayView startDayHour={8} endDayHour={16.5} />
                       <Appointments />
