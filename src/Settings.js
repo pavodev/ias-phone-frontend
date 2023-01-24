@@ -105,7 +105,7 @@ export default class Settings extends Component {
             <Typography fontWeight={600} mb={1}>
               Collaboratori
             </Typography>
-            <FormControl sx={{ width: 400 }}>
+            <FormControl sx={{ width: 400, maxWidth: "100%" }}>
               <Select
                 multiple
                 value={this.props.collaborators}
