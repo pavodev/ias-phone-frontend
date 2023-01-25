@@ -75,7 +75,7 @@ export default class Settings extends Component {
               Numero di linee
             </Typography>
             <Slider
-              sx={{ marginLeft: "10px", width: 300 }}
+              sx={{ marginLeft: "10px", width: 300, maxWidth: "100%" }}
               aria-label="Numero di Linee"
               value={this.props.nrLines}
               onChange={this.props.handleNrLinesChange}
