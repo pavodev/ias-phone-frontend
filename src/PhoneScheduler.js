@@ -537,7 +537,7 @@ export default function PhoneScheduler() {
             }}
           >
             <Grid container direction="column" spacing={2}>
-              <Grid item>
+              <Grid item style={{ maxWidth: "100%" }}>
                 <TextField
                   style={{ width: "350px", maxWidth: "100%" }}
                   id="outlined-read-only-input"
@@ -546,7 +546,7 @@ export default function PhoneScheduler() {
                   onChange={handleFromListChange}
                 />
               </Grid>
-              <Grid item>
+              <Grid item style={{ maxWidth: "100%" }}>
                 <Editor
                   editorState={editorState}
                   toolbarClassName="toolbarClassName"
@@ -555,7 +555,7 @@ export default function PhoneScheduler() {
                   onEditorStateChange={onEditorStateChange}
                 />
               </Grid>
-              <Grid item textAlign="center">
+              <Grid item textAlign="center" style={{ maxWidth: "100%" }}>
                 <Button
                   color="primary"
                   variant="contained"
