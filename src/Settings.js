@@ -1,4 +1,7 @@
 import React, { Component } from "react";
+import { supabase } from "./database/client";
+
+// Material UI
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
@@ -20,11 +23,11 @@ import {
   Slider,
   TextField,
 } from "@mui/material";
-
-import { valuetext } from "./utility/formatting";
 import { Stack } from "@mui/system";
 import CloseIcon from "@mui/icons-material/Close";
 
+// Utiliy
+import { valuetext } from "./utility/formatting";
 import {
   AFTERNOON_SHIFT_END,
   AFTERNOON_SHIFT_START,
@@ -34,8 +37,11 @@ import {
   MORNING_SHIFT_END,
   MORNING_SHIFT_START,
   collaborators,
+  EMAIL_HEADER,
+  EMAIL_FOOTER,
 } from "./utility/constants";
-import { supabase } from "./database/client";
+import { useState } from "react";
+import htmlToDraft from "html-to-draftjs";
 
 const MenuProps = {
   PaperProps: {
@@ -46,131 +52,119 @@ const MenuProps = {
   },
 };
 
-export default class Settings extends Component {
-  constructor(props) {
-    super(props);
+export default function Settings(props) {
+  const [emailBody, setEmailBody] = useState("");
+  const [alertOpen, setAlertOpen] = useState(false);
 
-    this.state = {
-      alertOpen: false,
-      collaboratorsList: [],
-    };
-  }
-
-  async componentDidMount() {
-    const { data, error } = await supabase.from("collaborators").select();
-    if (!error) {
-      this.setState({ collaboratorsList: data });
-    }
-  }
-
-  render() {
-    return (
-      <div>
-        <Typography variant="h4" fontWeight={600} component="h1" gutterBottom>
-          Impostazioni
-        </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12}>
+  return (
+    <div>
+      <Typography variant="h4" fontWeight={600} component="h1" gutterBottom>
+        Impostazioni
+      </Typography>
+      <Grid container>
+        <Grid item>
+          <Grid container direction="column" spacing={2}>
+            <Grid item>
+              <Typography fontWeight={600} mb={1}>
+                Numero di linee
+              </Typography>
+              <Slider
+                sx={{ marginLeft: "10px", width: 300, maxWidth: "100%" }}
+                aria-label="Numero di Linee"
+                value={props.nrLines}
+                onChange={props.handleNrLinesChange}
+                getAriaValueText={valuetext}
+                valueLabelDisplay="auto"
+                step={1}
+                marks={marks}
+                min={1}
+                max={5}
+              />
+            </Grid>
+            {/* <DateTimePicker /> */}
+            {/* <Grid item xs={12}>
             <Typography fontWeight={600} mb={1}>
-              Numero di linee
+              Minuti per linea
             </Typography>
-            <Slider
-              sx={{ marginLeft: "10px", width: 300, maxWidth: "100%" }}
-              aria-label="Numero di Linee"
-              value={this.props.nrLines}
-              onChange={this.props.handleNrLinesChange}
-              getAriaValueText={valuetext}
-              valueLabelDisplay="auto"
-              step={1}
-              marks={marks}
-              min={1}
-              max={5}
+            <TextField
+              value={lineDuration}
+              sx={{ width: 400 }}
+              size="small"
+              onChange={handleLineDurationChange}
+              inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
             />
-          </Grid>
-          <Divider />
-          {/* <DateTimePicker /> */}
-          {/* <Grid item xs={12}>
-        <Typography fontWeight={600} mb={1}>
-          Minuti per linea
-        </Typography>
-        <TextField
-          value={lineDuration}
-          sx={{ width: 400 }}
-          size="small"
-          onChange={this.handleLineDurationChange}
-          inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
-        />
-      </Grid> */}
-          <Grid item xs={12} maxWidth={"100%"}>
-            <Typography fontWeight={600} mb={1}>
-              Collaboratori
-            </Typography>
-            <FormControl sx={{ width: 400, maxWidth: "100%" }}>
-              <Select
-                sx={{ maxWidth: "100%" }}
-                multiple
-                value={this.props.collaborators}
-                onChange={this.props.handleCollaboratorsChange}
-                input={<OutlinedInput />}
-                renderValue={(selected) => {
-                  if (selected.length === 0) {
-                    return "Seleziona...";
-                  }
-                  return (
-                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                      {selected.map((value) => (
-                        <Chip
-                          key={value.name}
-                          label={`${value.name} ${value.surname}`}
-                        />
-                      ))}
-                    </Box>
-                  );
-                }}
-                MenuProps={MenuProps}
-              >
-                <MenuItem disabled value="">
-                  Seleziona...
-                </MenuItem>
-                {this.state.collaboratorsList.map((collaborator) => (
-                  <MenuItem key={collaborator.id} value={collaborator}>
-                    {`${collaborator.name} ${collaborator.surname}`}
+            </Grid> */}
+            <Grid item maxWidth={"100%"}>
+              <Typography fontWeight={600} mb={1}>
+                Collaboratori
+              </Typography>
+              <FormControl sx={{ width: 300, maxWidth: "100%" }}>
+                <Select
+                  sx={{ maxWidth: "100%" }}
+                  multiple
+                  value={props.selectedCollaborators}
+                  onChange={props.handleCollaboratorsChange}
+                  input={<OutlinedInput />}
+                  renderValue={(selected) => {
+                    if (selected.length === 0) {
+                      return "Seleziona...";
+                    }
+                    return (
+                      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                        {selected.map((value) => (
+                          <Chip
+                            key={value.name}
+                            label={`${value.name} ${value.surname}`}
+                          />
+                        ))}
+                      </Box>
+                    );
+                  }}
+                  MenuProps={MenuProps}
+                >
+                  <MenuItem disabled value="">
+                    Seleziona...
                   </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Stack>
-            <Collapse in={this.state.alertOpen}>
-              <Alert
-                severity="warning"
-                action={
-                  <IconButton
-                    aria-label="close"
-                    color="inherit"
-                    size="small"
-                    onClick={() => {
-                      this.setState({ alertOpen: false });
-                    }}
-                  >
-                    <CloseIcon fontSize="inherit" />
-                  </IconButton>
-                }
-                sx={{ mb: 2 }}
-              >
-                <AlertTitle>Attenzione</AlertTitle>
-                Il dato inserito nella casella per la durata della linea deve
-                essere <strong>di tipo numerico</strong>
-              </Alert>
-            </Collapse>
-          </Stack>
-          <Grid item xs={12} mt={4}>
-            <Button onClick={this.props.submit} variant="contained">
-              Assegna turni
-            </Button>
+                  {props.collaborators?.map((collaborator) => (
+                    <MenuItem key={collaborator.id} value={collaborator}>
+                      {`${collaborator.name} ${collaborator.surname}`}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Stack>
+              <Collapse in={alertOpen}>
+                <Alert
+                  severity="warning"
+                  action={
+                    <IconButton
+                      aria-label="close"
+                      color="inherit"
+                      size="small"
+                      onClick={() => {
+                        setAlertOpen(false);
+                      }}
+                    >
+                      <CloseIcon fontSize="inherit" />
+                    </IconButton>
+                  }
+                  sx={{ mb: 2 }}
+                >
+                  <AlertTitle>Attenzione</AlertTitle>
+                  Il dato inserito nella casella per la durata della linea deve
+                  essere <strong>di tipo numerico</strong>
+                </Alert>
+              </Collapse>
+            </Stack>
+            <Grid item>
+              <Button onClick={props.submit} variant="contained">
+                Assegna turni
+              </Button>
+            </Grid>
           </Grid>
         </Grid>
-      </div>
-    );
-  }
+      </Grid>
+    </div>
+  );
 }

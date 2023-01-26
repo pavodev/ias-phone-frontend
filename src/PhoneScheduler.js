@@ -8,6 +8,17 @@ import Link from "@mui/material/Link";
 import Paper from "@mui/material/Paper";
 import { Button, Divider, Grid } from "@mui/material";
 
+// WYSIWYG Editor
+import { Editor } from "react-draft-wysiwyg";
+import {
+  EditorState,
+  convertToRaw,
+  convertFromHTML,
+  ContentState,
+} from "draft-js";
+import "react-draft-wysiwyg/dist/react-draft-wysiwyg.css";
+import draftToHtml from "draftjs-to-html";
+
 // React Scheduler
 import {
   Scheduler,
@@ -50,6 +61,7 @@ import { useState } from "react";
 import { useEffect } from "react";
 import { useAuth } from "./auth/Auth";
 import { useNavigate } from "react-router-dom";
+import htmlToDraft from "html-to-draftjs";
 
 const currentDate = new Date();
 
@@ -131,16 +143,17 @@ export default function PhoneScheduler() {
   const [shadePreviousAppointments, setShadePreviousAppointments] =
     useState(true);
   const [updateInterval, setUpdateInterval] = useState(1000);
+  const [editorState, setEditorState] = useState(EditorState.createEmpty());
 
   useEffect(() => {
-    const {
-      data,
-      error,
-    } = async () => await supabase.from("collaborators").select();
-    console.log(data);
-    if (!error) {
-      setCollaborators(data);
-    }
+    const fetchData = async () => {
+      let { data, error } = await supabase.from("collaborators").select();
+      if (!error) {
+        setCollaborators(data);
+      }
+    };
+
+    fetchData();
   }, []);
 
   const handleNrLinesChange = (event) => {
@@ -171,6 +184,79 @@ export default function PhoneScheduler() {
 
   const roundToDecimal = (value) => {
     return Math.round(value);
+  };
+
+  const onEditorStateChange = (editorState) => {
+    setEditorState(editorState);
+  };
+
+  const prepareEmailBody = () => {
+    // const rawContentState = convertToRaw(editorState.getCurrentContent());
+    let emailCore = [];
+    if (!appointmentsData || appointmentsData.length === 0) {
+      setEditorState(
+        EditorState.createWithContent(
+          ContentState.createFromText("Nessun utente selezionato")
+        )
+      );
+    } else {
+    }
+
+    let lineStrings = appointmentsData.map((line, index1) => {
+      let shifts = line.map((shift, index2) => {
+        return (
+          "<li>" +
+          shift.startDate.getHours() +
+          ":" +
+          (shift.startDate.getMinutes() < 10 ? "0" : "") +
+          shift.startDate.getMinutes() +
+          " - " +
+          shift.endDate.getHours() +
+          ":" +
+          (shift.endDate.getMinutes() < 10 ? "0" : "") +
+          shift.endDate.getMinutes() +
+          " / " +
+          shift.title +
+          "</li>"
+        );
+      });
+
+      shifts = shifts.join("");
+      return "<p><strong>Linea " + index1 + "</strong></p>" + shifts;
+    });
+    lineStrings = lineStrings.join("");
+
+    let emailBody =
+      "<div>" +
+      "<p>Ciao a tutti,</p>" +
+      "<p>Di seguito trovate i turni odierni</p>" +
+      lineStrings +
+      "<p>Buona giornata!</p>" +
+      "</div>";
+
+    console.log(emailBody);
+
+    const blocks = convertFromHTML(emailBody);
+
+    setEditorState(
+      EditorState.createWithContent(
+        ContentState.createFromBlockArray(
+          blocks.contentBlocks,
+          blocks.entityMap
+        )
+      )
+    );
+  };
+
+  const htmlToDraftBlocks = (html) => {
+    const blocksFromHtml = htmlToDraft(html);
+    const { contentBlocks, entityMap } = blocksFromHtml;
+    const contentState = ContentState.createFromBlockArray(
+      contentBlocks,
+      entityMap
+    );
+    const editorState = EditorState.createWithContent(contentState);
+    return editorState;
   };
 
   const computeShifts = () => {
@@ -325,6 +411,7 @@ export default function PhoneScheduler() {
     }
 
     setAppointmentsData(assignedShifts);
+    console.log(assignedShifts);
     console.log(splittedLineShifts, computedShifts);
   };
 
@@ -395,7 +482,7 @@ export default function PhoneScheduler() {
 
   return (
     <Container maxWidth="100%" margin={4}>
-      {user && (
+      {/* {user && (
         <div>
           <Button
             color="primary"
@@ -406,20 +493,53 @@ export default function PhoneScheduler() {
             Log out
           </Button>
         </div>
-      )}
+      )} */}
       <Divider sx={{ marginTop: "40px", marginBottom: "40px" }} />
-      <Box maxWidth="100%">
-        <Settings
-          nrLines={nrLines}
-          handleNrLinesChange={handleNrLinesChange}
-          collaborators={selectedCollaborators}
-          handleCollaboratorsChange={handleCollaboratorsChange}
-          // lineDuration={lineDuration}
-          handleLineDurationChange={handleLineDurationChange}
-          submit={computeShifts}
-        />
-        <MailTo data={appointmentsData} />
-      </Box>
+      <Grid container spacing={4}>
+        <Grid item xs={12} md={5}>
+          <Settings
+            nrLines={nrLines}
+            handleNrLinesChange={handleNrLinesChange}
+            selectedCollaborators={selectedCollaborators}
+            collaborators={collaborators}
+            handleCollaboratorsChange={handleCollaboratorsChange}
+            // lineDuration={lineDuration}
+            handleLineDurationChange={handleLineDurationChange}
+            submit={computeShifts}
+          />
+          {/* <MailTo data={appointmentsData} /> */}
+        </Grid>
+        <Grid item xs={12} md={7}>
+          <Box
+            p="10px"
+            style={{
+              border: "1px solid rgba(236,236,236)",
+              borderRadius: "20px",
+            }}
+          >
+            <Grid container direction="column" spacing={2}>
+              <Grid item>
+                <Editor
+                  editorState={editorState}
+                  toolbarClassName="toolbarClassName"
+                  wrapperClassName="wrapperClassName"
+                  editorClassName="editorClassName"
+                  onEditorStateChange={onEditorStateChange}
+                />
+              </Grid>
+              <Grid item textAlign="center">
+                <Button
+                  color="primary"
+                  variant="contained"
+                  onClick={prepareEmailBody}
+                >
+                  Genera e-mail
+                </Button>
+              </Grid>
+            </Grid>
+          </Box>
+        </Grid>
+      </Grid>
       <Divider sx={{ marginTop: "40px" }} />
       <Grid my={4}>
         <Typography variant="h4" fontWeight={600} component="h1" gutterBottom>
@@ -430,7 +550,7 @@ export default function PhoneScheduler() {
         <Grid container spacing={2}>
           {[...Array(nrLines)].map((e, i) => {
             return (
-              <Grid item xs={12} sm={4} key={i}>
+              <Grid item xs={12} md={4} key={i}>
                 <Paper>
                   <Typography
                     variant="h5"

@@ -1,5 +1,6 @@
 import { Button } from "@mui/material";
 import React, { Component } from "react";
+import { EMAIL_FOOTER, EMAIL_HEADER } from "../utility/constants";
 
 export default class MailTo extends Component {
   constructor(props) {
@@ -17,45 +18,28 @@ export default class MailTo extends Component {
     console.log(date);
     let receivers = "ivan96jp@gmail.com,alengavra19@gmail.com";
     let subject = `Turni telefono - ${date.toLocaleDateString("ch-IT")}`;
-    let body = (
-      <p>
-        <p>Cari Collaboratori,</p>
-        <p>
-          di seguito trovate i turni del telefono odierni:
-          <ul>
-            <li>
-              Alen Gavranovic:
-              <ul>
-                <li>08:30 - 11:30</li>
-                <li>14:00 - 16:00</li>
-              </ul>
-            </li>
-            <li>
-              Ivan Pavic:
-              <ul>
-                <li>08:30 - 10:30</li>
-                <li>10:30 - 11:30</li>
-              </ul>
-            </li>
-          </ul>
-        </p>
-      </p>
-    );
+    let body =
+      "<p><p>Ciao a tutti,</p><p>di seguito trovate i turni del telefono odierni:<ul><li>Alen Gavranovic:<ul><li>08:30 - 11:30</li><li>14:00 - 16:00</li></ul></li><li>Ivan Pavic:<ul><li>08:30 - 10:30</li><li>10:30 - 11:30</li></ul></li></ul></p></p>";
 
-    // fetch("/sendmail", {
-    //   method: "POST",
-    //   mode: "cors", // no-cors, *cors, same-origin
-    //   cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
-    //   credentials: "same-origin", // include, *same-origin, omit
-    //   redirect: "follow", // manual, *follow, error
-    //   referrerPolicy: "no-referrer", // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
-    // }).then((response) => console.log(response));
+    const formData = new FormData();
+    formData.append("access_token", "test_value");
+    formData.append("email_from", "ivan96jp@gmail.com");
+    formData.append("email_to", receivers);
+    formData.append("email_subject", subject);
+    formData.append("email_body", EMAIL_HEADER + body + EMAIL_FOOTER);
 
-    this.setState({
-      mailto: `mailto:${receivers}?subject=${encodeURIComponent(
-        subject
-      )}&body=${encodeURIComponent(body)}`,
-    });
+    const data = new URLSearchParams(formData);
+
+    fetch("/sendmail", {
+      method: "POST",
+      body: data,
+    }).then((response) => console.log(response));
+
+    // this.setState({
+    //   mailto: `mailto:${receivers}?subject=${encodeURIComponent(
+    //     subject
+    //   )}&body=${encodeURIComponent(body)}`,
+    // });
   };
 
   render() {
