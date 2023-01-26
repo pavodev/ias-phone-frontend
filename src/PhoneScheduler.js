@@ -6,7 +6,7 @@ import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
 import Link from "@mui/material/Link";
 import Paper from "@mui/material/Paper";
-import { Button, Divider, Grid } from "@mui/material";
+import { Button, Divider, Grid, TextField } from "@mui/material";
 
 // WYSIWYG Editor
 import { Editor } from "react-draft-wysiwyg";
@@ -144,6 +144,7 @@ export default function PhoneScheduler() {
     useState(true);
   const [updateInterval, setUpdateInterval] = useState(1000);
   const [editorState, setEditorState] = useState(EditorState.createEmpty());
+  const [fromList, setFromList] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -182,6 +183,14 @@ export default function PhoneScheduler() {
     );
   };
 
+  const handleFromListChange = (event) => {
+    const {
+      target: { value },
+    } = event;
+
+    setFromList(value);
+  };
+
   const roundToDecimal = (value) => {
     return Math.round(value);
   };
@@ -191,61 +200,67 @@ export default function PhoneScheduler() {
   };
 
   const prepareEmailBody = () => {
-    // const rawContentState = convertToRaw(editorState.getCurrentContent());
-    let emailCore = [];
     if (!appointmentsData || appointmentsData.length === 0) {
       setEditorState(
         EditorState.createWithContent(
-          ContentState.createFromText("Nessun utente selezionato")
+          ContentState.createFromText("Nessun collaboratore selezionato")
         )
       );
     } else {
-    }
+      let lineStrings = appointmentsData.map((line, index1) => {
+        let shifts = line.map((shift, index2) => {
+          return (
+            "<li>" +
+            shift.startDate.getHours() +
+            ":" +
+            (shift.startDate.getMinutes() < 10 ? "0" : "") +
+            shift.startDate.getMinutes() +
+            " - " +
+            shift.endDate.getHours() +
+            ":" +
+            (shift.endDate.getMinutes() < 10 ? "0" : "") +
+            shift.endDate.getMinutes() +
+            " / " +
+            shift.title +
+            "</li>"
+          );
+        });
 
-    let lineStrings = appointmentsData.map((line, index1) => {
-      let shifts = line.map((shift, index2) => {
-        return (
-          "<li>" +
-          shift.startDate.getHours() +
-          ":" +
-          (shift.startDate.getMinutes() < 10 ? "0" : "") +
-          shift.startDate.getMinutes() +
-          " - " +
-          shift.endDate.getHours() +
-          ":" +
-          (shift.endDate.getMinutes() < 10 ? "0" : "") +
-          shift.endDate.getMinutes() +
-          " / " +
-          shift.title +
-          "</li>"
-        );
+        shifts = shifts.join("");
+        return "<p><strong>Linea " + index1 + "</strong></p>" + shifts;
       });
+      lineStrings = lineStrings.join("");
 
-      shifts = shifts.join("");
-      return "<p><strong>Linea " + index1 + "</strong></p>" + shifts;
-    });
-    lineStrings = lineStrings.join("");
+      let emailBody =
+        "<div>" +
+        "<p>Ciao a tutti,</p>" +
+        "<p>Di seguito trovate i turni odierni " +
+        new Date().toLocaleDateString("ch-IT") +
+        ":</p>" +
+        lineStrings +
+        "<p>Buona giornata!</p>" +
+        "</div>";
 
-    let emailBody =
-      "<div>" +
-      "<p>Ciao a tutti,</p>" +
-      "<p>Di seguito trovate i turni odierni</p>" +
-      lineStrings +
-      "<p>Buona giornata!</p>" +
-      "</div>";
+      console.log(emailBody);
 
-    console.log(emailBody);
+      const blocks = convertFromHTML(emailBody);
 
-    const blocks = convertFromHTML(emailBody);
-
-    setEditorState(
-      EditorState.createWithContent(
-        ContentState.createFromBlockArray(
-          blocks.contentBlocks,
-          blocks.entityMap
+      setFromList(
+        selectedCollaborators
+          .map((collaborators) => {
+            return collaborators.email;
+          })
+          .join(",")
+      );
+      setEditorState(
+        EditorState.createWithContent(
+          ContentState.createFromBlockArray(
+            blocks.contentBlocks,
+            blocks.entityMap
+          )
         )
-      )
-    );
+      );
+    }
   };
 
   const htmlToDraftBlocks = (html) => {
@@ -260,6 +275,8 @@ export default function PhoneScheduler() {
   };
 
   const computeShifts = () => {
+    if (!selectedCollaborators || selectedCollaborators.length === 0) return;
+
     setAppointmentsData([]);
     const morningLineDuration = getMinuteDifference(
       morningShiftStart,
@@ -371,6 +388,7 @@ export default function PhoneScheduler() {
 
         morningShiftsDates.push({
           title: `${currentCollaborator.name} ${currentCollaborator.surname}`,
+          email: currentCollaborator.email,
           color: currentCollaborator.color,
           startDate: startingDate,
           endDate: new Date(startingDate.getTime() + shift * 60000),
@@ -396,6 +414,7 @@ export default function PhoneScheduler() {
 
         afternoonShiftsDates.push({
           title: `${currentCollaborator.name} ${currentCollaborator.surname}`,
+          email: currentCollaborator.email,
           color: currentCollaborator.color,
           startDate: startingDate,
           endDate: new Date(startingDate.getTime() + shift * 60000),
@@ -513,11 +532,20 @@ export default function PhoneScheduler() {
           <Box
             p="10px"
             style={{
-              border: "1px solid rgba(236,236,236)",
+              border: "1px solid rgba(0, 0, 0, 0.23)",
               borderRadius: "20px",
             }}
           >
             <Grid container direction="column" spacing={2}>
+              <Grid item>
+                <TextField
+                  style={{ width: "350px", maxWidth: "100%" }}
+                  id="outlined-read-only-input"
+                  label="Destinatari"
+                  value={fromList}
+                  onChange={handleFromListChange}
+                />
+              </Grid>
               <Grid item>
                 <Editor
                   editorState={editorState}
