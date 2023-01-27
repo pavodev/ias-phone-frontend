@@ -203,7 +203,9 @@ export default function PhoneScheduler() {
     if (!appointmentsData || appointmentsData.length === 0) {
       setEditorState(
         EditorState.createWithContent(
-          ContentState.createFromText("Nessun collaboratore selezionato")
+          ContentState.createFromText(
+            "Nessun turno assegnato. Per generare un e-mail assegnare prima i turni."
+          )
         )
       );
     } else {
