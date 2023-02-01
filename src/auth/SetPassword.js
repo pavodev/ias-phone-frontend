@@ -12,12 +12,16 @@ import {
   TextField,
 } from "@mui/material";
 import React, { useState, MouseEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "../database/client";
 
 export default function SetPassword() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [openSuccess, setOpenSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -37,11 +41,17 @@ export default function SetPassword() {
 
     try {
       setLoading(true);
+
       const { error } = await supabase.auth.updateUser({
         password,
       });
 
       if (error) throw error;
+
+      // no error
+
+      supabase.auth.signOut();
+      navigate("/");
     } catch (error) {
       setErrorMessage(error.error_description || error.message);
       setOpen(true);
@@ -52,6 +62,9 @@ export default function SetPassword() {
 
   const handleClose = () => {
     setOpen(false);
+  };
+  const handleCloseSuccess = () => {
+    setOpenSuccess(false);
   };
 
   const handleClickShowPassword = () =>
@@ -72,7 +85,7 @@ export default function SetPassword() {
     <div className="container mx-auto text-center w-72">
       <div className="col-6 form-widget" aria-live="polite">
         {loading ? (
-          "Imposto la password"
+          "Impostando la password..."
         ) : (
           <form onSubmit={handleSetUserPassword}>
             <Grid
@@ -159,6 +172,19 @@ export default function SetPassword() {
       <Snackbar open={open} autoHideDuration={5000} onClose={handleClose}>
         <Alert onClose={handleClose} severity="warning" sx={{ width: "100%" }}>
           {errorMessage}
+        </Alert>
+      </Snackbar>
+      <Snackbar
+        open={openSuccess}
+        autoHideDuration={5000}
+        onClose={handleCloseSuccess}
+      >
+        <Alert
+          onClose={handleCloseSuccess}
+          severity="success"
+          sx={{ width: "100%" }}
+        >
+          {successMessage}
         </Alert>
       </Snackbar>
     </div>
