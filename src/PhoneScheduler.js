@@ -59,7 +59,7 @@ import { supabase } from "./database/client";
 import MailTo from "./email/MailTo";
 import { useState } from "react";
 import { useEffect } from "react";
-import { useAuth } from "./auth/Auth";
+// import { useAuth } from "./auth/Auth";
 import { useNavigate } from "react-router-dom";
 import htmlToDraft from "html-to-draftjs";
 
@@ -81,7 +81,7 @@ export const Appointment = ({ children, style, data, ...restProps }) => (
 );
 
 export default function PhoneScheduler() {
-  const { user, signOut } = useAuth();
+  // const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
   async function handleSignOut() {
@@ -515,7 +515,7 @@ export default function PhoneScheduler() {
           </Button>
         </div>
       )} */}
-      <Divider sx={{ marginTop: "40px", marginBottom: "40px" }} />
+      {/* <Divider sx={{ marginTop: "40px", marginBottom: "40px" }} /> */}
       <Grid container spacing={4}>
         <Grid item xs={12} md={5}>
           <Settings

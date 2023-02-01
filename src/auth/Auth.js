@@ -1,48 +1,82 @@
-import React, { useContext, useState, useEffect } from "react";
+import { Alert, Button, Grid, Snackbar, TextField } from "@mui/material";
+import React, { useState } from "react";
 import { supabase } from "../database/client";
 
-const AuthContext = React.createContext();
+export default function Auth() {
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-export function useAuth() {
-  return useContext(AuthContext);
-}
+  const handleLogin = async (e) => {
+    e.preventDefault();
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState({});
-  const [loading, setLoading] = useState(true);
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-  useEffect(() => {
-    // Check active sessions and sets the user
-    const session = supabase.auth.getSession();
+      if (error) throw error;
+    } catch (error) {
+      setErrorMessage(error.error_description || error.message);
+      setOpen(true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    setUser(session?.user ?? {});
-    setLoading(false);
-
-    // Listen for changes on auth state (logged in, signed out, etc.)
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setUser(session?.user ?? {});
-        setLoading(false);
-      }
-    );
-
-    return () => {
-      listener?.unsubscribe();
-    };
-  }, []);
-
-  // Will be passed down to Signup, Login and Dashboard components
-  const value = {
-    signUp: (data) => supabase.auth.signUp(data),
-    signIn: (data) => supabase.auth.signInWithPassword(data),
-    signOut: () => supabase.auth.signOut(),
-    validateUser: (jwt) => supabase.auth.getUser(jwt),
-    user,
+  const handleClose = () => {
+    setOpen(false);
   };
 
   return (
-    <AuthContext.Provider value={value}>
-      {!loading && children}
-    </AuthContext.Provider>
+    <div className="container mx-auto text-center w-72">
+      <div className="col-6 form-widget" aria-live="polite">
+        {loading ? (
+          "Sto effettuando il login..."
+        ) : (
+          <form onSubmit={handleLogin}>
+            <Grid
+              container
+              spacing={3}
+              alignItems="center"
+              justify="center"
+              direction="column"
+            >
+              <h1>Accedi</h1>
+              <Grid item>
+                <TextField
+                  type="email"
+                  placeholder="Email"
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </Grid>
+              <Grid item>
+                <TextField
+                  type="password"
+                  placeholder="Password"
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </Grid>
+              <Grid item>
+                <Button color="primary" variant="contained" type="submit">
+                  Login
+                </Button>
+              </Grid>
+            </Grid>
+          </form>
+        )}
+      </div>
+      <Snackbar open={open} autoHideDuration={5000} onClose={handleClose}>
+        <Alert onClose={handleClose} severity="warning" sx={{ width: "100%" }}>
+          {errorMessage}
+        </Alert>
+      </Snackbar>
+    </div>
   );
 }
