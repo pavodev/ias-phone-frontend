@@ -27,7 +27,7 @@
     "react-dom": "latest",
     "react-draft-wysiwyg": "^1.15.0",
     "react-router-dom": "^6.7.0",
-    "react-scripts": "latest"
+    "react-scripts": "^4.0.3"
   },
   "browserslist": {
     "production": [
