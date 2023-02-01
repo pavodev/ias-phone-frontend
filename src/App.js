@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import {
   AppBar,
   Button,
+  Divider,
   Grid,
   IconButton,
   Toolbar,
@@ -13,11 +14,12 @@ import { Route, Routes, useNavigate } from "react-router-dom";
 // import { Login } from "./auth/Login";
 import PhoneScheduler from "./PhoneScheduler";
 import Auth from "./auth/Auth";
-// import { PrivateRoute } from "./components/PrivateRoute";
+import { PrivateRoute } from "./components/PrivateRoute";
 import DefaultPage from "./components/DefaultPage";
 import { supabase } from "./database/client";
 import Account from "./auth/Account";
 import { Box } from "@mui/system";
+import SetPassword from "./auth/SetPassword";
 
 function App() {
   const navigate = useNavigate();
@@ -37,8 +39,9 @@ function App() {
     });
   }, []);
 
-  const logOut = () => {
-    supabase.auth.signOut();
+  const logOut = async () => {
+    await supabase.auth.signOut();
+    navigate("/");
   };
 
   return (
@@ -50,34 +53,37 @@ function App() {
               SAF Turni telefono
             </Typography>
             {!session ? null : (
-              <Button color="inherit" onClick={logOut}>
-                Log out
-              </Button>
+              <>
+                <Button color="inherit" onClick={logOut}>
+                  Log out
+                </Button>
+              </>
             )}
           </Toolbar>
         </AppBar>
       </Box>
       <div className="wrapper" style={{ margin: "40px 20px" }}>
-        <div className="container mx-auto">
-          {!session ? <Auth /> : <PhoneScheduler />}
-        </div>
-        {/* <AuthProvider> */}
-        {/* <Routes> */}
-        {/* <Route
+        <Routes>
+          <Route
             path="/"
             element={
               <PrivateRoute>
+                {session ? (
+                  <>
+                    <Typography fontSize={16}>
+                      Utente: {session.user.email}
+                    </Typography>
+                    <Divider sx={{ marginBottom: "40px" }} />
+                  </>
+                ) : null}
                 <PhoneScheduler />
               </PrivateRoute>
             }
-          /> */}
+          />
 
-        {/* <Route path="/signup" element={<Signup />} /> */}
-        {/* <Route path="/" element={<PhoneScheduler />} /> */}
-        {/* <Route path="/login" element={<Login />} /> */}
-        {/* <Route path="/*" element={<DefaultPage />} /> */}
-        {/* </Routes> */}
-        {/* </AuthProvider> */}
+          <Route path="/create-password" element={<SetPassword />} />
+          <Route path="/*" element={<DefaultPage />} />
+        </Routes>
       </div>
     </div>
   );

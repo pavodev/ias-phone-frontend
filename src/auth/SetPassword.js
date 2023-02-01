@@ -5,31 +5,39 @@ import {
   FormControl,
   Grid,
   IconButton,
-  Input,
   InputAdornment,
   InputLabel,
   OutlinedInput,
   Snackbar,
   TextField,
 } from "@mui/material";
-import React, { useState } from "react";
+import React, { useState, MouseEvent } from "react";
 import { supabase } from "../database/client";
 
-export default function Auth() {
+export default function SetPassword() {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showConfirmPassword, setShowConfirmPassword] = useState("");
 
-  const handleLogin = async (e) => {
+  const handleSetUserPassword = async (e) => {
     e.preventDefault();
+
+    console.log("PASSWORD", password);
+    console.log("CONFIRM", confirmPassword);
+
+    if (password !== confirmPassword) {
+      setErrorMessage("Le password non corrispondono");
+      setOpen(true);
+      return;
+    }
 
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
+      const { error } = await supabase.auth.updateUser({
         password,
       });
 
@@ -53,13 +61,20 @@ export default function Auth() {
     event.preventDefault();
   };
 
+  const handleClickShowConfirmPassword = () =>
+    setShowConfirmPassword((showConfirmPassword) => !showConfirmPassword);
+
+  const handleMouseDownConfirmPassword = (event) => {
+    event.preventDefault();
+  };
+
   return (
     <div className="container mx-auto text-center w-72">
       <div className="col-6 form-widget" aria-live="polite">
         {loading ? (
-          "Sto effettuando il login..."
+          "Imposto la password"
         ) : (
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleSetUserPassword}>
             <Grid
               container
               spacing={3}
@@ -67,24 +82,7 @@ export default function Auth() {
               justify="center"
               direction="column"
             >
-              <h1>Accedi</h1>
-              <Grid item>
-                <FormControl
-                  sx={{ m: 1, width: "25ch" }}
-                  variant="outlined"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                >
-                  <InputLabel htmlFor="email-input">Email</InputLabel>
-                  <OutlinedInput
-                    id="email-input"
-                    type="email"
-                    label="Email"
-                    aria-describedby="my-helper-text"
-                  />
-                </FormControl>
-              </Grid>
+              <h1>Crea una nuova password</h1>
               <Grid item>
                 <FormControl
                   sx={{ m: 1, width: "25ch" }}
@@ -99,7 +97,6 @@ export default function Auth() {
                   <OutlinedInput
                     id="outlined-adornment-password"
                     type={showPassword ? "text" : "password"}
-                    label="Password"
                     endAdornment={
                       <InputAdornment position="end">
                         <IconButton
@@ -112,12 +109,47 @@ export default function Auth() {
                         </IconButton>
                       </InputAdornment>
                     }
+                    label="Password"
+                  />
+                </FormControl>
+              </Grid>
+              <Grid item>
+                <FormControl
+                  sx={{ m: 1, width: "25ch" }}
+                  variant="outlined"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                >
+                  <InputLabel htmlFor="outlined-adornment-password-confirm">
+                    Conferma
+                  </InputLabel>
+                  <OutlinedInput
+                    id="outlined-adornment-password-confirm"
+                    type={showConfirmPassword ? "text" : "password"}
+                    endAdornment={
+                      <InputAdornment position="end">
+                        <IconButton
+                          aria-label="toggle confirm password visibility"
+                          onClick={handleClickShowConfirmPassword}
+                          onMouseDown={handleMouseDownConfirmPassword}
+                          edge="end"
+                        >
+                          {showConfirmPassword ? (
+                            <VisibilityOff />
+                          ) : (
+                            <Visibility />
+                          )}
+                        </IconButton>
+                      </InputAdornment>
+                    }
+                    label="Confirm Password"
                   />
                 </FormControl>
               </Grid>
               <Grid item>
                 <Button color="primary" variant="contained" type="submit">
-                  Login
+                  Imposta password
                 </Button>
               </Grid>
             </Grid>

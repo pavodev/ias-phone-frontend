@@ -81,19 +81,6 @@ export default function Settings(props) {
                 max={5}
               />
             </Grid>
-            {/* <DateTimePicker /> */}
-            {/* <Grid item xs={12}>
-            <Typography fontWeight={600} mb={1}>
-              Minuti per linea
-            </Typography>
-            <TextField
-              value={lineDuration}
-              sx={{ width: 400 }}
-              size="small"
-              onChange={handleLineDurationChange}
-              inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
-            />
-            </Grid> */}
             <Grid item maxWidth={"100%"}>
               <Typography fontWeight={600} mb={1}>
                 Collaboratori

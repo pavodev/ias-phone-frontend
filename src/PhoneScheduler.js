@@ -503,19 +503,6 @@ export default function PhoneScheduler() {
 
   return (
     <Container maxWidth="100%" margin={4}>
-      {/* {user && (
-        <div>
-          <Button
-            color="primary"
-            variant="contained"
-            type="submit"
-            onClick={handleSignOut}
-          >
-            Log out
-          </Button>
-        </div>
-      )} */}
-      {/* <Divider sx={{ marginTop: "40px", marginBottom: "40px" }} /> */}
       <Grid container spacing={4}>
         <Grid item xs={12} md={5}>
           <Settings
