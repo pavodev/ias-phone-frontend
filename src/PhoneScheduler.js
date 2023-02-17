@@ -291,8 +291,12 @@ export default function PhoneScheduler() {
     );
 
     const lineDuration = morningLineDuration + afternoonLineDuration;
-    const shiftLength = (lineDuration * nrLines) / selectedCollaborators.length;
+    let shiftLength = (lineDuration * nrLines) / selectedCollaborators.length;
     console.log(lineDuration, nrLines, selectedCollaborators);
+
+    if (!Number.isInteger(shiftLength)) {
+      shiftLength = Math.trunc(shiftLength);
+    }
 
     console.log(
       `Total line duration: ${lineDuration}, shift length: ${shiftLength}`
@@ -306,7 +310,11 @@ export default function PhoneScheduler() {
     let previousLineRemaining = 0;
     let lineShifts = [];
     for (let i = 0; i < nrLines; i++) {
-      let result = consumeLine(shiftLength, previousLineRemaining);
+      let result = consumeLine(
+        shiftLength,
+        previousLineRemaining,
+        i === nrLines - 1
+      );
       previousLineRemaining = result.remaining;
       console.log(
         `Line ${i} shifts: ${result.shifts}, \nRemaining time: ${previousLineRemaining}`
@@ -436,7 +444,11 @@ export default function PhoneScheduler() {
     console.log(splittedLineShifts, computedShifts);
   };
 
-  const consumeLine = (shiftLength = 0, previousLineRemaining = 0) => {
+  const consumeLine = (
+    shiftLength = 0,
+    previousLineRemaining = 0,
+    isLast = false
+  ) => {
     const morningLineDuration = getMinuteDifference(
       morningShiftStart,
       morningShiftEnd
@@ -473,6 +485,15 @@ export default function PhoneScheduler() {
 
     // Reached the end, check if we consumed the time in this line
     if (currentMinutePosition != afternoonEndMinute) {
+      if (isLast) {
+        let lastAdded = shifts.pop();
+        shifts.push(lastAdded + (afternoonEndMinute - currentMinutePosition));
+
+        return {
+          shifts,
+          remaining: 0,
+        };
+      }
       shifts.push(afternoonEndMinute);
       return {
         shifts,
@@ -485,8 +506,6 @@ export default function PhoneScheduler() {
       remaining: 0,
     };
   };
-
-  const checkIfValid = () => {};
 
   const getD = (d) => {
     d = new Date(d);

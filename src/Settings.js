@@ -100,7 +100,7 @@ export default function Settings(props) {
                       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                         {selected.map((value) => (
                           <Chip
-                            key={value.name}
+                            key={value.name + value.surname}
                             label={`${value.name} ${value.surname}`}
                           />
                         ))}
