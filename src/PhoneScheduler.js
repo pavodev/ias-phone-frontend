@@ -1,12 +1,24 @@
 import * as React from "react";
+import "./PhoneScheduler.css";
 
 // Material UI
+import { styled, alpha } from "@mui/material/styles";
+import classNames from "clsx";
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
 import Link from "@mui/material/Link";
 import Paper from "@mui/material/Paper";
-import { Button, Divider, Grid, TextField } from "@mui/material";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  Grid,
+  Modal,
+  TextField,
+} from "@mui/material";
 
 // WYSIWYG Editor
 import { Editor } from "react-draft-wysiwyg";
@@ -25,11 +37,13 @@ import {
   DayView,
   Appointments,
   AppointmentTooltip,
-} from "@devexpress/dx-react-scheduler-material-ui";
-
-import {
   AppointmentForm,
   CurrentTimeIndicator,
+} from "@devexpress/dx-react-scheduler-material-ui";
+import {
+  DragDropProvider,
+  EditingState,
+  IntegratedEditing,
   ViewState,
 } from "@devexpress/dx-react-scheduler";
 
@@ -47,6 +61,7 @@ import {
   MORNING_SHIFT_END,
   MORNING_SHIFT_START,
   collaborators,
+  classes,
 } from "./utility/constants";
 
 // UTILS
@@ -65,6 +80,36 @@ import htmlToDraft from "html-to-draftjs";
 
 const currentDate = new Date();
 
+// ************** STYLED COMPONENTS **************/
+
+const StyledDiv = styled("div", {
+  shouldForwardProp: (prop) => prop !== "top",
+})(({ theme, top }) => ({
+  [`& .${classes.line}`]: {
+    height: "2px",
+    borderTop: `2px black solid`,
+    width: "100%",
+    transform: "translate(0, -1px)",
+  },
+  [`& .${classes.circle}`]: {
+    width: theme.spacing(1.5),
+    height: theme.spacing(1.5),
+    borderRadius: "50%",
+    transform: "translate(-50%, -50%)",
+    background: "black",
+  },
+  [`& .${classes.nowIndicator}`]: {
+    position: "absolute",
+    zIndex: 1,
+    left: 0,
+    top,
+  },
+}));
+
+// ************** SCHEDULER UTILITIES ***************
+
+// ************** CUSTOM COMPONENTS **************
+
 // Appointment component
 export const Appointment = ({ children, style, data, ...restProps }) => (
   <Appointments.Appointment
@@ -75,10 +120,69 @@ export const Appointment = ({ children, style, data, ...restProps }) => (
       backgroundColor: data.color,
       color: data.color,
     }}
+    onClick={(e) => console.log("clicked", data)}
   >
     {children}
   </Appointments.Appointment>
 );
+
+// Time indicator
+const TimeIndicator = ({ top, ...restProps }) => (
+  <StyledDiv top={top} {...restProps}>
+    <div className={classNames(classes.nowIndicator, classes.circle)} />
+    <div className={classNames(classes.nowIndicator, classes.line)} />
+  </StyledDiv>
+);
+
+// Text editor
+const TextEditor = (props) => {
+  // eslint-disable-next-line react/destructuring-assignment
+  if (props.type === "multilineTextEditor") {
+    return null;
+  }
+  return <AppointmentForm.TextEditor {...props} />;
+};
+
+// Custom overlay
+const FormOverlay = React.forwardRef(({ visible = false, children }) => {
+  return (
+    <Modal open={visible}>
+      <Paper className={classes.root}>{children}</Paper>
+    </Modal>
+  );
+});
+
+// Custom form
+const CustomAppointmentForm = ({
+  onFieldChange,
+  appointmentData,
+  ...restProps
+}) => {
+  const [open, setOpen] = useState(true);
+  const [email, setEmail] = useState("");
+
+  const onEmailChange = (nextValue) => {
+    console.log("next: ", nextValue);
+    onFieldChange({ email: nextValue });
+  };
+
+  return (
+    <AppointmentForm.BasicLayout
+      className="scheduler-form"
+      style={{ width: "100%" }}
+      appointmentData={appointmentData}
+      onFieldChange={onFieldChange}
+      {...restProps}
+    >
+      <AppointmentForm.Label text="Email" type="title" />
+      <AppointmentForm.TextEditor
+        value={appointmentData.email}
+        onValueChange={onEmailChange}
+        placeholder="Email"
+      />
+    </AppointmentForm.BasicLayout>
+  );
+};
 
 export default function PhoneScheduler() {
   // const { user, signOut } = useAuth();
@@ -252,7 +356,7 @@ export default function PhoneScheduler() {
           .map((collaborators) => {
             return collaborators.email;
           })
-          .join(",")
+          .join(";")
       );
       setEditorState(
         EditorState.createWithContent(
@@ -372,6 +476,7 @@ export default function PhoneScheduler() {
 
     // ASSIGN DATA
 
+    let shiftId = 0;
     let collaboratorCounter = 0;
     let shiftMinutesCounter = 0;
     let currentCollaborator = null;
@@ -397,6 +502,7 @@ export default function PhoneScheduler() {
         }
 
         morningShiftsDates.push({
+          id: shiftId,
           title: `${currentCollaborator.name} ${currentCollaborator.surname}`,
           email: currentCollaborator.email,
           color: currentCollaborator.color,
@@ -404,6 +510,7 @@ export default function PhoneScheduler() {
           endDate: new Date(startingDate.getTime() + shift * 60000),
         });
 
+        shiftId++;
         startingDate = new Date(startingDate.getTime() + shift * 60000);
       });
 
@@ -423,6 +530,7 @@ export default function PhoneScheduler() {
         }
 
         afternoonShiftsDates.push({
+          id: shiftId,
           title: `${currentCollaborator.name} ${currentCollaborator.surname}`,
           email: currentCollaborator.email,
           color: currentCollaborator.color,
@@ -430,6 +538,7 @@ export default function PhoneScheduler() {
           endDate: new Date(startingDate.getTime() + shift * 60000),
         });
 
+        shiftId++;
         startingDate = new Date(startingDate.getTime() + shift * 60000);
       });
 
@@ -520,6 +629,39 @@ export default function PhoneScheduler() {
     return true;
   };
 
+  const commitChanges = ({ added, changed, deleted }) => {
+    console.log("COMMITTING CHANGES...", added, changed, deleted);
+    console.log("Appointments Data", appointmentsData);
+    const newAppointmentsData = [];
+
+    appointmentsData.forEach((lineAppointmentsData) => {
+      let updatedData = lineAppointmentsData;
+      if (added) {
+        const startingAddedId =
+          updatedData.length > 0
+            ? updatedData[updatedData.length - 1].id + 1
+            : 0;
+        updatedData = [...updatedData, { id: startingAddedId, ...added }];
+      }
+      if (changed) {
+        updatedData = updatedData.map((appointment) =>
+          changed[appointment.id]
+            ? { ...appointment, ...changed[appointment.id] }
+            : appointment
+        );
+      }
+      if (deleted !== undefined) {
+        updatedData = updatedData.filter(
+          (appointment) => appointment.id !== deleted
+        );
+      }
+
+      newAppointmentsData.push(updatedData);
+    });
+
+    setAppointmentsData(newAppointmentsData);
+  };
+
   return (
     <Container maxWidth="100%" margin={4}>
       <Grid container spacing={4}>
@@ -583,11 +725,11 @@ export default function PhoneScheduler() {
         </Typography>
       </Grid>
       <Grid m={1} w={"100%"} justifyContent="center" alignItems="center">
-        <Grid container spacing={2}>
+        <Grid container spacing={3}>
           {[...Array(nrLines)].map((e, i) => {
             return (
-              <Grid item xs={12} md={4} key={i}>
-                <Paper>
+              <Grid item xs={12} md={4} key={i} style={{ overflow: "visible" }}>
+                <Paper style={{ overflow: "visible" }}>
                   <Typography
                     variant="h5"
                     padding="10px 0 10px 10px"
@@ -597,12 +739,25 @@ export default function PhoneScheduler() {
                   >
                     Linea {i + 1}
                   </Typography>
-                  <Scheduler locale={locale} data={appointmentsData[i]}>
+                  <Scheduler
+                    className="scheduler"
+                    locale={locale}
+                    data={appointmentsData[i]}
+                  >
                     <ViewState currentDate={currentDate} />
+                    <EditingState onCommitChanges={commitChanges} />
+                    <IntegratedEditing />
                     <DayView startDayHour={8} endDayHour={16.5} />
                     <Appointments appointmentComponent={Appointment} />
-                    <AppointmentTooltip showCloseButton />
+                    {/* <DragDropProvider /> */}
+                    <AppointmentTooltip showCloseButton showOpenButton />
+                    <AppointmentForm
+                      basicLayoutComponent={CustomAppointmentForm}
+                      textEditorComponent={TextEditor}
+                      overlayComponent={FormOverlay}
+                    />
                     <CurrentTimeIndicator
+                      indicatorComponent={TimeIndicator}
                       shadePreviousCells={shadePreviousCells}
                       shadePreviousAppointments={shadePreviousAppointments}
                       updateInterval={updateInterval}

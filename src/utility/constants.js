@@ -21,6 +21,17 @@ export const marks = [
   },
 ];
 
+const PREFIX = "saf-scheduler";
+export const classes = {
+  line: `${PREFIX}-line`,
+  circle: `${PREFIX}-circle`,
+  nowIndicator: `${PREFIX}-nowIndicator`,
+  shadedCell: `${PREFIX}-shadedCell`,
+  shadedPart: `${PREFIX}-shadedPart`,
+  appointment: `${PREFIX}-appointment`,
+  shadedAppointment: `${PREFIX}-shadedAppointment`,
+};
+
 export const MORNING_SHIFT_START = [8, 45];
 export const MORNING_SHIFT_END = [11, 45];
 export const AFTERNOON_SHIFT_START = [14, 0];
