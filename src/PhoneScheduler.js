@@ -15,8 +15,12 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  FormControl,
   Grid,
+  InputLabel,
+  MenuItem,
   Modal,
+  Select,
   TextField,
 } from "@mui/material";
 
@@ -45,6 +49,7 @@ import {
   EditingState,
   IntegratedEditing,
   ViewState,
+  SelectOption,
 } from "@devexpress/dx-react-scheduler";
 
 // React Date-time picker
@@ -62,6 +67,7 @@ import {
   MORNING_SHIFT_START,
   collaborators,
   classes,
+  colors,
 } from "./utility/constants";
 
 // UTILS
@@ -77,6 +83,7 @@ import { useEffect } from "react";
 // import { useAuth } from "./auth/Auth";
 import { useNavigate } from "react-router-dom";
 import htmlToDraft from "html-to-draftjs";
+import { useCallback } from "react";
 
 const currentDate = new Date();
 
@@ -156,30 +163,60 @@ const FormOverlay = React.forwardRef(({ visible = false, children }) => {
 const CustomAppointmentForm = ({
   onFieldChange,
   appointmentData,
+  nrLines,
   ...restProps
 }) => {
   const [open, setOpen] = useState(true);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(appointmentData.email);
+  const [lineNumber, setLineNumber] = useState(
+    appointmentData.lineNumber ? appointmentData.lineNumber : 1
+  );
 
-  const onEmailChange = (nextValue) => {
-    console.log("next: ", nextValue);
-    onFieldChange({ email: nextValue });
+  const options = Array.from({ length: nrLines }, (_, i) => i + 1);
+
+  const onChange = (nextValue) => {
+    console.log("MAIL CHANGE", nextValue);
+    onFieldChange({ ...appointmentData, email: nextValue, lineNumber });
+  };
+
+  const onLineChange = (nextValue) => {
+    console.log("LINE CHANGE", nextValue);
+    setLineNumber(nextValue.target.value);
+    onFieldChange({ ...appointmentData, lineNumber: nextValue.target.value });
   };
 
   return (
     <AppointmentForm.BasicLayout
       className="scheduler-form"
-      style={{ width: "100%" }}
+      style={{ width: "70%", margin: "auto" }}
       appointmentData={appointmentData}
       onFieldChange={onFieldChange}
       {...restProps}
     >
-      <AppointmentForm.Label text="Email" type="title" />
-      <AppointmentForm.TextEditor
-        value={appointmentData.email}
-        onValueChange={onEmailChange}
-        placeholder="Email"
-      />
+      <AppointmentForm.Label text="Linea" type="title" />
+      <FormControl fullWidth>
+        <Select
+          labelId="demo-simple-select-label"
+          id="demo-simple-select"
+          value={lineNumber}
+          label="Linea"
+          onChange={onLineChange}
+        >
+          {options.map((line, index) => (
+            <MenuItem key={index} value={line}>
+              {line}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+      {/* <AppointmentForm.SelectProps
+        value={
+          appointmentData.lineNumber ? appointmentData.lineNumber : options[0]
+        }
+        availableOptions={options}
+        onValueChange={onChange}
+        placeholder="Linea"
+      /> */}
     </AppointmentForm.BasicLayout>
   );
 };
@@ -266,6 +303,15 @@ export default function PhoneScheduler() {
       target: { value },
     } = event;
 
+    if (appointmentsData.length === 0) {
+      let newData = [];
+      for (let i = 0; i < value; i++) {
+        newData.push([]);
+      }
+
+      setAppointmentsData(newData);
+    }
+
     setNrLines(value);
   };
 
@@ -313,28 +359,32 @@ export default function PhoneScheduler() {
         )
       );
     } else {
-      let lineStrings = appointmentsData.map((line, index1) => {
-        let shifts = line.map((shift, index2) => {
-          return (
-            "<li>" +
-            shift.startDate.getHours() +
-            ":" +
-            (shift.startDate.getMinutes() < 10 ? "0" : "") +
-            shift.startDate.getMinutes() +
-            " - " +
-            shift.endDate.getHours() +
-            ":" +
-            (shift.endDate.getMinutes() < 10 ? "0" : "") +
-            shift.endDate.getMinutes() +
-            " / " +
-            shift.title +
-            "</li>"
-          );
-        });
+      let lineStrings = [...appointmentsData]
+        .sort((a, b) => a.startDate - b.startDate)
+        .map((line, index1) => {
+          let shifts = [...line]
+            .sort((a, b) => a.startDate - b.startDate)
+            .map((shift, index2) => {
+              return (
+                "<li>" +
+                shift.startDate.getHours() +
+                ":" +
+                (shift.startDate.getMinutes() < 10 ? "0" : "") +
+                shift.startDate.getMinutes() +
+                " - " +
+                shift.endDate.getHours() +
+                ":" +
+                (shift.endDate.getMinutes() < 10 ? "0" : "") +
+                shift.endDate.getMinutes() +
+                " / " +
+                shift.title +
+                "</li>"
+              );
+            });
 
-        shifts = shifts.join("");
-        return "<p><strong>Linea " + index1 + "</strong></p>" + shifts;
-      });
+          shifts = shifts.join("");
+          return "<p><strong>Linea " + index1 + "</strong></p>" + shifts;
+        });
       lineStrings = lineStrings.join("");
 
       let emailBody =
@@ -503,6 +553,8 @@ export default function PhoneScheduler() {
 
         morningShiftsDates.push({
           id: shiftId,
+          lineNumber: i + 1,
+          totalLines: nrLines,
           title: `${currentCollaborator.name} ${currentCollaborator.surname}`,
           email: currentCollaborator.email,
           color: currentCollaborator.color,
@@ -531,6 +583,8 @@ export default function PhoneScheduler() {
 
         afternoonShiftsDates.push({
           id: shiftId,
+          lineNumber: i + 1,
+          totalLines: nrLines,
           title: `${currentCollaborator.name} ${currentCollaborator.surname}`,
           email: currentCollaborator.email,
           color: currentCollaborator.color,
@@ -631,36 +685,103 @@ export default function PhoneScheduler() {
 
   const commitChanges = ({ added, changed, deleted }) => {
     console.log("COMMITTING CHANGES...", added, changed, deleted);
-    console.log("Appointments Data", appointmentsData);
-    const newAppointmentsData = [];
 
-    appointmentsData.forEach((lineAppointmentsData) => {
-      let updatedData = lineAppointmentsData;
-      if (added) {
-        const startingAddedId =
-          updatedData.length > 0
-            ? updatedData[updatedData.length - 1].id + 1
-            : 0;
-        updatedData = [...updatedData, { id: startingAddedId, ...added }];
-      }
-      if (changed) {
-        updatedData = updatedData.map((appointment) =>
-          changed[appointment.id]
-            ? { ...appointment, ...changed[appointment.id] }
-            : appointment
-        );
-      }
-      if (deleted !== undefined) {
-        updatedData = updatedData.filter(
-          (appointment) => appointment.id !== deleted
-        );
-      }
+    let updatedData = appointmentsData;
+    if (added) {
+      let oldLineData = updatedData;
+      let newData = [];
+      if (!oldLineData || oldLineData.length === 0) {
+        for (let i = 0; i < nrLines; i++) {
+          newData.push([]);
+        }
 
-      newAppointmentsData.push(updatedData);
-    });
+        oldLineData = newData;
+      }
+      oldLineData[added.lineNumber - 1] = [
+        ...oldLineData[added.lineNumber - 1],
+        { ...added },
+      ];
 
-    setAppointmentsData(newAppointmentsData);
+      updatedData = oldLineData;
+    }
+
+    if (changed) {
+      // Check line changes first and move appointments if there is a line change
+
+      let allLineChanges = [];
+      let afterLineChangeData = updatedData;
+
+      afterLineChangeData = updatedData.map((line, index) => {
+        let newLineData = [];
+
+        let appointmentChangedLine = [];
+        appointmentChangedLine = line.filter((appointment) => {
+          if (
+            changed[appointment.id] &&
+            appointment.lineNumber !== changed[appointment.id].lineNumber
+          )
+            return true;
+          return false;
+        });
+
+        allLineChanges = allLineChanges.concat(appointmentChangedLine);
+
+        newLineData = line.filter((appointment) => {
+          if (
+            changed[appointment.id] &&
+            appointment.lineNumber !== changed[appointment.id].lineNumber
+          ) {
+            return false;
+          }
+          return true;
+        });
+
+        return newLineData;
+      });
+
+      if (allLineChanges.length > 0)
+        if (changed[allLineChanges[0].id])
+          allLineChanges[0].lineNumber =
+            changed[allLineChanges[0].id].lineNumber;
+
+      afterLineChangeData[allLineChanges[0].lineNumber - 1].push(
+        allLineChanges[0]
+      );
+
+      // Update data once the lane change has been computed
+
+      updatedData = afterLineChangeData.map((line, index) => {
+        let newLineData = [];
+
+        newLineData = line.map((appointment) => {
+          let appointmentToUpdate = changed[appointment.id];
+
+          return appointmentToUpdate
+            ? { ...appointment, ...appointmentToUpdate }
+            : appointment;
+        });
+
+        return newLineData;
+      });
+    }
+
+    if (deleted !== undefined) {
+      let lineData = [];
+      let newData = [];
+      updatedData.forEach((line, index) => {
+        lineData = line.filter((appointment) => appointment.id !== deleted);
+
+        newData.push(lineData);
+      });
+      updatedData = newData;
+    }
+
+    setAppointmentsData(updatedData);
   };
+
+  const appointmentWithAdditionalProps = useCallback((props) => {
+    return <CustomAppointmentForm {...props} nrLines={nrLines} />;
+  }, []);
 
   return (
     <Container maxWidth="100%" margin={4}>
@@ -752,7 +873,7 @@ export default function PhoneScheduler() {
                     {/* <DragDropProvider /> */}
                     <AppointmentTooltip showCloseButton showOpenButton />
                     <AppointmentForm
-                      basicLayoutComponent={CustomAppointmentForm}
+                      basicLayoutComponent={appointmentWithAdditionalProps}
                       textEditorComponent={TextEditor}
                       overlayComponent={FormOverlay}
                     />

@@ -21,6 +21,69 @@ export const marks = [
   },
 ];
 
+export const colors = [
+  {
+    value: "#7FFFD4",
+    label: "Acquamarina",
+  },
+  {
+    value: "#E52B50",
+    label: "Rosso",
+  },
+  {
+    value: "#FFA500",
+    label: "Arancione",
+  },
+  {
+    value: "#007FFF",
+    label: "Azzurro",
+  },
+  {
+    value: "#F400A1",
+    label: "Fucsia",
+  },
+  {
+    value: "#D2691E",
+    label: "Cioccolato",
+  },
+  {
+    value: "#7FFFD4",
+    label: "Acquamarina",
+  },
+  {
+    value: "#7FFFD4",
+    label: "Acquamarina",
+  },
+  {
+    value: "#7FFFD4",
+    label: "Acquamarina",
+  },
+  {
+    value: "#7FFFD4",
+    label: "Acquamarina",
+  },
+  {
+    value: "#7FFFD4",
+    label: "Acquamarina",
+  },
+  {
+    value: "#7FFFD4",
+    label: "Acquamarina",
+  },
+  {
+    value: "#7FFFD4",
+    label: "Acquamarina",
+  },
+  {
+    value: "#7FFFD4",
+    label: "Acquamarina",
+  },
+  {
+    value: "#7FFFD4",
+    label: "Acquamarina",
+  },
+];
+
 const PREFIX = "saf-scheduler";
 export const classes = {
   line: `${PREFIX}-line`,
