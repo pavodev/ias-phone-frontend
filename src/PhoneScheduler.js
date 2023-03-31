@@ -244,6 +244,7 @@ export default function PhoneScheduler() {
       0
     )
   );
+
   const [morningShiftEnd, setMorningShiftEnd] = useState(
     new Date(
       today.getFullYear(),
@@ -254,6 +255,7 @@ export default function PhoneScheduler() {
       0
     )
   );
+
   const [afternoonShiftStart, setAfternoonShiftStart] = useState(
     new Date(
       today.getFullYear(),
@@ -264,6 +266,7 @@ export default function PhoneScheduler() {
       0
     )
   );
+
   const [afternoonShiftEnd, setAfternoonShiftEnd] = useState(
     new Date(
       today.getFullYear(),
