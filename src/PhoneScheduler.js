@@ -84,6 +84,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import htmlToDraft from "html-to-draftjs";
 import { useCallback } from "react";
+import moment from "moment";
 
 const currentDate = new Date();
 
@@ -300,6 +301,42 @@ export default function PhoneScheduler() {
 
     fetchData();
   }, []);
+
+  const handleMorningShiftStartChange = (event) => {
+    let time = event.target.value;
+    time = time.split(":");
+
+    let now = moment().set({ hour: time[0], minute: time[1] });
+
+    setMorningShiftStart(now.toDate());
+  };
+
+  const handleAfternoonShiftStartChange = (event) => {
+    let time = event.target.value;
+    time = time.split(":");
+
+    let now = moment().set({ hour: time[0], minute: time[1] });
+
+    setAfternoonShiftStart(now.toDate());
+  };
+
+  const handleMorningShiftEndChange = (event) => {
+    let time = event.target.value;
+    time = time.split(":");
+
+    let now = moment().set({ hour: time[0], minute: time[1] });
+
+    setMorningShiftEnd(now.toDate());
+  };
+
+  const handleAfternoonShiftEndChange = (event) => {
+    let time = event.target.value;
+    time = time.split(":");
+
+    let now = moment().set({ hour: time[0], minute: time[1] });
+
+    setAfternoonShiftEnd(now.toDate());
+  };
 
   const handleNrLinesChange = (event) => {
     const {
@@ -792,6 +829,14 @@ export default function PhoneScheduler() {
         <Grid item xs={12} md={5}>
           <Settings
             nrLines={nrLines}
+            morningShiftStart={morningShiftStart}
+            afternoonShiftStart={afternoonShiftStart}
+            morningShiftEnd={morningShiftEnd}
+            afternoonShiftEnd={afternoonShiftEnd}
+            handleMorningShiftStartChange={handleMorningShiftStartChange}
+            handleAfternoonShiftStartChange={handleAfternoonShiftStartChange}
+            handleMorningShiftEndChange={handleMorningShiftEndChange}
+            handleAfternoonShiftEndChange={handleAfternoonShiftEndChange}
             handleNrLinesChange={handleNrLinesChange}
             selectedCollaborators={selectedCollaborators}
             collaborators={collaborators}

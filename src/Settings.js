@@ -42,6 +42,7 @@ import {
 } from "./utility/constants";
 import { useState } from "react";
 import htmlToDraft from "html-to-draftjs";
+import moment from "moment";
 
 const MenuProps = {
   PaperProps: {
@@ -56,6 +57,7 @@ export default function Settings(props) {
   const [emailBody, setEmailBody] = useState("");
   const [alertOpen, setAlertOpen] = useState(false);
 
+  console.log("MOORNING: ", moment(props.morningShiftStart).format("HH:mm"));
   return (
     <div>
       <Typography variant="h4" fontWeight={600} component="h1" gutterBottom>
@@ -65,6 +67,80 @@ export default function Settings(props) {
         <Grid item>
           <Grid container direction="column" spacing={2}>
             <Grid item>
+              <Grid container direction="column" spacing={2} mb={2}>
+                <Grid item>
+                  <Grid container direction="row" spacing={2}>
+                    <Grid item xs={6}>
+                      <label htmlFor="appointment-morning-start">
+                        <Typography fontWeight={600} mb={1}>
+                          Orario inizio mattino:{" "}
+                        </Typography>
+                      </label>
+                      <input
+                        id="appointment-morning-start"
+                        type="time"
+                        name="appointment-morning-start"
+                        onChange={props.handleMorningShiftStartChange}
+                        value={`${moment(props.morningShiftStart).format(
+                          "HH:mm"
+                        )}`}
+                      />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <label for="appointment-afternoon-start">
+                        <Typography fontWeight={600} mb={1}>
+                          Orario inizio pomeriggio:{" "}
+                        </Typography>
+                      </label>
+                      <input
+                        id="appointment-afternoon-start"
+                        type="time"
+                        name="appointment-afternoon-start"
+                        onChange={props.handleAfternoonShiftStartChange}
+                        value={`${moment(props.afternoonShiftStart).format(
+                          "HH:mm"
+                        )}`}
+                      />
+                    </Grid>
+                  </Grid>
+                </Grid>
+                <Grid item>
+                  <Grid container direction="row" spacing={2}>
+                    <Grid item xs={6}>
+                      <label for="appointment-morning-end">
+                        <Typography fontWeight={600} mb={1}>
+                          Orario fine mattino:{" "}
+                        </Typography>
+                      </label>
+                      <input
+                        id="appointment-morning-end"
+                        type="time"
+                        name="appointment-morning-end"
+                        onChange={props.handleMorningShiftEndChange}
+                        value={`${moment(props.morningShiftEnd).format(
+                          "HH:mm"
+                        )}`}
+                      />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <label for="appointment-afternoon-end">
+                        <Typography fontWeight={600} mb={1}>
+                          Orario fine pomeriggio:{" "}
+                        </Typography>
+                      </label>
+                      <input
+                        id="appointment-afternoon-end"
+                        type="time"
+                        name="appointment-afternoon-end"
+                        onChange={props.handleAfternoonShiftEndChange}
+                        value={`${moment(props.afternoonShiftEnd).format(
+                          "HH:mm"
+                        )}`}
+                      />
+                    </Grid>
+                  </Grid>
+                </Grid>
+              </Grid>
               <Typography fontWeight={600} mb={1}>
                 Numero di linee
               </Typography>
