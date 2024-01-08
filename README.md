@@ -1,4 +1,4 @@
-# Create React App example
+# IAS Phone Scheduling Interface
 
 ## How to use
 
